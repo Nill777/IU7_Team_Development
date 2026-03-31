@@ -1,0 +1,115 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ master, develop, 'feature/**' ]
+  pull_request:
+    branches: [ master, develop ]
+
+jobs:
+  static-analysis:
+    name: Static Analysis
+    runs-on: self-hosted
+    steps:
+      - name: Run Detekt
+        run: echo "Stub"
+
+  unit-tests:
+    name: Unit Tests
+    needs: static-analysis
+    runs-on: self-hosted
+    steps:
+      - name: Run Unit Tests
+        run: echo "Stub"
+
+  integration-tests:
+    name: Integration Tests
+    needs: unit-tests
+    runs-on: self-hosted
+    steps:
+      - name: Run Integration Tests
+        run: echo "Stub"
+
+  e2e-tests:
+    name: E2E Tests
+    needs: integration-tests
+    runs-on: self-hosted
+    steps:
+      - name: Run E2E Tests
+        run: echo "Stub"
+
+  llm-review:
+    name: AI Code Review
+    needs: e2e-tests
+    if: github.event_name == 'pull_request'
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Collect Entire Codebase
+        run: |
+          python collect_code.py .
+
+      - name: Generate PR Diff
+        run: |
+          git diff origin/develop...HEAD > pr_diff.txt
+
+      - name: Build Prompt and Run LLM
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "=== ПРАВИЛА НАПИСАНИЯ КОДА ===" > full_context.txt
+          cat docs/code_style_guide.md >> full_context.txt
+          
+          echo -e "\n\n=== ТЕХНИЧЕСКОЕ ЗАДАНИЕ ===\n" >> full_context.txt
+          cat README.md >> full_context.txt
+          
+          echo -e "\n\n=== ТЕКУЩАЯ КОДОВАЯ БАЗА ПРОЕКТА ===\n" >> full_context.txt
+          cat all_project_code.txt >> full_context.txt
+          
+          echo -e "\n\n=== ИЗМЕНЕНИЯ В ТЕКУЩЕМ PULL REQUEST (DIFF, КОТОРЫЙ НУЖНО ПРОВЕРИТЬ) ===\n" >> full_context.txt
+          cat pr_diff.txt >> full_context.txt
+
+
+          jq -n \
+            --arg system_msg "$(cat .github/prompts/reviewer_prompt.md)" \
+            --arg user_msg "$(cat full_context.txt)" \
+            '{
+              model: "qwen3-coder:30b",
+              messages:[
+                {
+                  role: "system", 
+                  content: $system_msg
+                },
+                {
+                  role: "user", 
+                  content: $user_msg
+                }
+              ],
+              stream: false,
+              think: true,
+              options: {
+                num_ctx: 256000,
+                temperature: 0.1
+              }
+            }' > payload.json
+
+
+          curl --max-time 3600 -s -X POST http://localhost:11434/api/chat \
+               -H "Content-Type: application/json" \
+               -d @payload.json \
+               | jq -r '.message.content' > ai_report.md
+
+          echo "## AI Code Review (Qwen3-coder:30b)" > review_result.md
+          cat ai_report.md >> review_result.md
+
+          gh pr comment ${{ github.event.pull_request.number }} -F review_result.md
+
