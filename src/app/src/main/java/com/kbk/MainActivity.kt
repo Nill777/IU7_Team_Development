@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
     Text(
-        text = "Hello $name! 11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
+        text = "Hello $name",
         modifier = modifier
     )
 }
@@ -41,36 +41,6 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
 @Preview(showBackground = true)
 @Composable
 fun GreetingPreview() {
-    if (true) {
-        if (true) {
-            if (true) {
-                if (true) {
-                    if (true) {
-                        if (true) {
-                            if (true) {
-                                if (true) {
-                                    if (true) {
-                                        if (true) {
-                                            if (true) {
-                                                if (true) {
-                                                    if (true) {
-                                                        if (true) {
-                                                            println("wertyuytrewertys")
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     KeystrokeBiometricsKeyboardSDKTheme {
         Greeting("Android")
     }
