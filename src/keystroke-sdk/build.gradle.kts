@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "com.kbk.keystroke_sdk"
+    namespace = "com.kbk.keystrokeSdk"
     compileSdk = 36
 
     defaultConfig {
@@ -25,11 +25,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 }
 
