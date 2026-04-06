@@ -1,6 +1,7 @@
 package com.kbk.domain.models
 
 data class MotionData(
+<<<<<<< HEAD
     val timestamp: Long = 0L,
     val accX: Float = 0f,
     val accY: Float = 0f,
@@ -11,4 +12,13 @@ data class MotionData(
     val rotVecX: Float = 0f,
     val rotVecY: Float = 0f,
     val rotVecZ: Float = 0f
+=======
+    val timestamp: Long,
+    val accX: Float,
+    val accY: Float,
+    val accZ: Float,
+    val gyroX: Float,
+    val gyroY: Float,
+    val gyroZ: Float
+>>>>>>> cd6079e (feat(PROJ-8): implemented data collection from sensors)
 )
