@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.detekt)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -43,6 +44,11 @@ dependencies {
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     testImplementation(libs.junit)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
 }
