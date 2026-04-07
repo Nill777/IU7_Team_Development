@@ -1,17 +1,9 @@
 package com.kbk.presentation
 
 import android.inputmethodservice.InputMethodService
+import android.view.KeyEvent
 import android.view.View
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.material3.Text
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -23,6 +15,9 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import com.kbk.presentation.keyboard.KeyboardAction
+import com.kbk.presentation.keyboard.KeyboardScreen
+import com.kbk.presentation.theme.KeyboardTheme
 
 class KeystrokeImeService : InputMethodService(),
     LifecycleOwner,
@@ -46,14 +41,8 @@ class KeystrokeImeService : InputMethodService(),
     override fun onCreateInputView(): View {
         val composeView = ComposeView(this).apply {
             setContent {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(250.dp)
-                        .background(Color.DarkGray),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(text = "Keystroke Keyboard MVP", color = Color.White)
+                KeyboardTheme {
+                    KeyboardScreen(onAction = ::handleKeyboardAction)
                 }
             }
         }
