@@ -9,15 +9,18 @@ on:
 jobs:
   static-analysis:
     name: Static Analysis
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          java-version: '17'
+          java-version: '21'
           distribution: 'temurin'
 
       - name: Grant execute permission for gradlew
@@ -30,6 +33,9 @@ jobs:
     name: Unit Tests
     needs: static-analysis
     runs-on: self-hosted
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Run Unit Tests
         run: echo "Stub"
@@ -38,6 +44,9 @@ jobs:
     name: Integration Tests
     needs: unit-tests
     runs-on: self-hosted
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Run Integration Tests
         run: echo "Stub"
@@ -46,6 +55,9 @@ jobs:
     name: E2E Tests
     needs: integration-tests
     runs-on: self-hosted
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Run E2E Tests
         run: echo "Stub"
@@ -55,6 +67,9 @@ jobs:
     needs: e2e-tests
     if: github.event_name == 'pull_request'
     runs-on: self-hosted
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
