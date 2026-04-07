@@ -37,6 +37,10 @@ android {
     }
 }
 
+kotlin {
+    jvmToolchain(21)
+}
+
 detekt {
     config.setFrom(files("$rootDir/detekt.yml"))
     buildUponDefaultConfig = true
