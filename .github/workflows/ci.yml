@@ -55,6 +55,7 @@ jobs:
     needs: e2e-tests
     if: github.event_name == 'pull_request'
     runs-on: self-hosted
+    timeout-minutes: 240
     permissions:
       contents: read
       pull-requests: write
@@ -115,7 +116,7 @@ jobs:
             }' > payload.json
 
 
-          curl --max-time 3600 -s -X POST http://localhost:11434/api/chat \
+          curl --max-time 14400 -s -X POST http://localhost:11434/api/chat \
                -H "Content-Type: application/json" \
                -d @payload.json \
                | jq -r '.message.content' > ai_report.md
