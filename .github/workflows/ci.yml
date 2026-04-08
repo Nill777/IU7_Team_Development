@@ -108,10 +108,9 @@ jobs:
                 }
               ],
               stream: false,
-              think: true,
               options: {
-                num_ctx: 256000,
-                temperature: 0.1
+                num_ctx: 262144,
+                temperature: 0.5
               }
             }' > payload.json
 
