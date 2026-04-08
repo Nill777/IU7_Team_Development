@@ -64,11 +64,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.x'
-
       - name: Collect Entire Codebase
         run: |
           python collect_code.py .
