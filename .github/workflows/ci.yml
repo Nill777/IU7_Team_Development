@@ -90,8 +90,8 @@ jobs:
 
 
           jq -n \
-            --arg system_msg "$(cat .github/prompts/reviewer_prompt.md)" \
-            --arg user_msg "$(cat full_context.txt)" \
+            --rawfile system_msg .github/prompts/reviewer_prompt.md \
+            --rawfile user_msg full_context.txt \
             '{
               model: "qwen3-coder:30b",
               messages:[
