@@ -28,12 +28,12 @@ def collect_code(root_dir):
                     continue
                 
                 if any(ignored in filename.lower() for ignored in ignore_names):
-                    print(f"Пропущен (имя): {filename}")
+                    print(f"Skiping (name): {filename}")
                     continue
                 
                 _, ext = os.path.splitext(filename)
                 if ext.lower() in ignore_extensions:
-                    print(f"Пропущен (тип): {filename}")
+                    print(f"Skiping (type): {filename}")
                     continue
 
                 try:
@@ -47,19 +47,23 @@ def collect_code(root_dir):
                             outfile.write('\n')
                         outfile.write("```\n\n")
                         
-                    print(f"Записан: {filename}")
+                    print(f"Recorded: {filename}")
                 except UnicodeDecodeError:
+                    print(f"Skipped due to encoding: {full_path}")
+                    continue
+                except IOError as e:
+                    print(f"I/O error while reading {full_path}: {e}")
                     continue
                 except Exception as e:
-                    print(f"Ошибка чтения {full_path}: {e}")
+                    print(f"Critical error while processing {full_path}: {e}")
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Использование: python collect_code.py /путь/к/директории")
+        print("Usage: python collect_code.py /path/to/directory")
     else:
         target_dir = sys.argv[1]
         if os.path.isdir(target_dir):
             collect_code(target_dir)
-            print("\nГотово. Файл all_project_code.txt создан.")
+            print("\nDone. The all_project_code.txt file has been created")
         else:
-            print("Указанный путь не является директорией.")
+            print("The specified path is not a directory")
