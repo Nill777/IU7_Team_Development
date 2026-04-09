@@ -64,10 +64,17 @@ class KeystrokeImeService : InputMethodService(),
             decorView.setViewTreeSavedStateRegistryOwner(this)
         }
 
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
-        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
-
         return composeView
+    }
+
+    override fun onWindowShown() {
+        super.onWindowShown()
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    }
+
+    override fun onWindowHidden() {
+        super.onWindowHidden()
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
     }
 
     override fun onDestroy() {
