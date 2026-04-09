@@ -68,17 +68,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Collect Entire Codebase
+      - name: Collect entire codebase
         run: |
           python collect_code.py .
 
-      - name: Generate PR Diff
+      - name: Generate PR diff
         run: |
           git diff origin/develop...HEAD > pr_diff.txt
 
-      - name: Build Prompt and Run LLM
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Collect context
         run: |
           echo "=== ПРАВИЛА НАПИСАНИЯ КОДА ===" > full_context.txt
           cat docs/code_style_guide.md >> full_context.txt
@@ -92,7 +90,8 @@ jobs:
           echo -e "\n\n=== ИЗМЕНЕНИЯ В ТЕКУЩЕМ PULL REQUEST (DIFF, КОТОРЫЙ НУЖНО ПРОВЕРИТЬ) ===\n" >> full_context.txt
           cat pr_diff.txt >> full_context.txt
 
-
+      - name: Generate payload
+        run: |
           jq -n \
             --rawfile system_msg .github/prompts/reviewer_prompt.md \
             --rawfile user_msg full_context.txt \
@@ -117,7 +116,10 @@ jobs:
               }
             }' > payload.json
 
-
+      - name: LLM Call
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
           curl --max-time 14400 -s -X POST http://localhost:11434/api/chat \
                -H "Content-Type: application/json" \
                -d @payload.json \
