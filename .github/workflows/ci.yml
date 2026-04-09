@@ -97,11 +97,11 @@ jobs:
             --rawfile system_msg .github/prompts/reviewer_prompt.md \
             --rawfile user_msg full_context.txt \
             '{
-              model: "qwen3-coder:30b",
+              model: "gemma4:e4b",
               messages:[
                 {
                   role: "system", 
-                  content: $system_msg
+                  content: ("<|think|>\n" + $system_msg)
                 },
                 {
                   role: "user", 
@@ -111,7 +111,9 @@ jobs:
               stream: false,
               options: {
                 num_ctx: 262144,
-                temperature: 0.5
+                temperature: 1,
+                top_p: 0.95,
+                top_k: 64
               }
             }' > payload.json
 
@@ -119,9 +121,10 @@ jobs:
           curl --max-time 14400 -s -X POST http://localhost:11434/api/chat \
                -H "Content-Type: application/json" \
                -d @payload.json \
-               | jq -r '.message.content' > ai_report.md
+               | jq -r '.message.content' \
+               | sed 's/<|channel>thought.*<channel|>//gs' > ai_report.md
 
-          echo "## AI Code Review (Qwen3-coder:30b)" > review_result.md
+          echo "## AI Code Review" > review_result.md
           cat ai_report.md >> review_result.md
 
           gh pr comment ${{ github.event.pull_request.number }} -F review_result.md
