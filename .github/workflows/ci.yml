@@ -122,7 +122,7 @@ jobs:
                -H "Content-Type: application/json" \
                -d @payload.json \
                | jq -r '.message.content' \
-               | sed 's/<|channel>thought.*<channel|>//gs' > ai_report.md
+               | sed 's/<\|channel>thought.*<channel\|>//g' > ai_report.md
 
           echo "## AI Code Review" > review_result.md
           cat ai_report.md >> review_result.md
