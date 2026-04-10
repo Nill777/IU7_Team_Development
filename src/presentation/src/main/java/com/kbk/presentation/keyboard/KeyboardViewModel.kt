@@ -3,13 +3,13 @@ package com.kbk.presentation.keyboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kbk.domain.irepository.IMotionRepository
+import com.kbk.domain.iservice.IBiometricService
 import com.kbk.domain.models.BiometricSample
 import com.kbk.domain.models.TouchData
-import com.kbk.domain.service.BiometricService
 import kotlinx.coroutines.launch
 
 class KeyboardViewModel(
-    private val biometricService: BiometricService,
+    private val biometricService: IBiometricService,
     private val motionTracker: IMotionRepository
 ) : ViewModel() {
     private var lastUpTime: Long = 0L
