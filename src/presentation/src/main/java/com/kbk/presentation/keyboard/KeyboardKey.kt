@@ -2,6 +2,8 @@ package com.kbk.presentation.keyboard
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -12,9 +14,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kbk.domain.models.TouchData
 
 private val KeyHorizontalPadding = 2.dp
 private val KeyVerticalPadding = 4.dp
@@ -50,6 +55,7 @@ fun KeyboardKey(
     text: String,
     modifier: Modifier = Modifier,
     type: KeyType = KeyType.NORMAL,
+    viewModel: KeyboardViewModel? = null,
     onClick: () -> Unit
 ) {
     val bgColor = if (type != KeyType.NORMAL) {
@@ -64,6 +70,46 @@ fun KeyboardKey(
             .fillMaxSize()
             .clip(RoundedCornerShape(KeyCornerRadius))
             .background(bgColor)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        // pass = Initial перехват данных до onClick
+                        val downEvent = awaitFirstDown(pass = PointerEventPass.Initial)
+
+                        val downTime = downEvent.uptimeMillis
+                        val p = downEvent.pressure
+                        val initialX = downEvent.position.x
+                        val initialY = downEvent.position.y
+
+                        val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
+
+                        if (upEvent != null && viewModel != null) {
+                            val upTime = upEvent.uptimeMillis
+
+                            // микроскольжение
+                            val swipeVectorX = upEvent.position.x - initialX
+                            val swipeVectorY = upEvent.position.y - initialY
+
+                            val dwellTime = upTime - downTime
+                            val flightTime = viewModel.calculateFlightTime(downTime)
+                            viewModel.updateLastUpTime(upTime)
+
+                            val touchData = TouchData(
+                                key = text,
+                                dwellTime = dwellTime,
+                                flightTime = flightTime,
+                                pressure = p,
+                                touchX = initialX,
+                                touchY = initialY,
+                                swipeVectorX = swipeVectorX,
+                                swipeVectorY = swipeVectorY
+                            )
+
+                            viewModel.onKeyTouchRecorded(touchData)
+                        }
+                    }
+                }
+            }
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center
     ) {

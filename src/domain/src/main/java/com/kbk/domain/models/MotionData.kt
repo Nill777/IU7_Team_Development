@@ -1,11 +1,14 @@
 package com.kbk.domain.models
 
 data class MotionData(
-    val timestamp: Long,
-    val accX: Float,
-    val accY: Float,
-    val accZ: Float,
-    val gyroX: Float,
-    val gyroY: Float,
-    val gyroZ: Float
+    val timestamp: Long = 0L,
+    val accX: Float = 0f,
+    val accY: Float = 0f,
+    val accZ: Float = 0f,
+    val gyroX: Float = 0f,
+    val gyroY: Float = 0f,
+    val gyroZ: Float = 0f,
+    val rotVecX: Float = 0f,
+    val rotVecY: Float = 0f,
+    val rotVecZ: Float = 0f
 )
