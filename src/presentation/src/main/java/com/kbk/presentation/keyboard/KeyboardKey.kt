@@ -19,7 +19,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.kbk.domain.models.TouchData
 
 private val KeyHorizontalPadding = 2.dp
 private val KeyVerticalPadding = 4.dp
@@ -55,7 +54,7 @@ fun KeyboardKey(
     text: String,
     modifier: Modifier = Modifier,
     type: KeyType = KeyType.NORMAL,
-    viewModel: KeyboardViewModel? = null,
+    viewModel: KeyboardViewModel,
     onClick: () -> Unit
 ) {
     val bgColor = if (type != KeyType.NORMAL) {
@@ -75,37 +74,14 @@ fun KeyboardKey(
                     while (true) {
                         // pass = Initial перехват данных до onClick
                         val downEvent = awaitFirstDown(pass = PointerEventPass.Initial)
-
-                        val downTime = downEvent.uptimeMillis
-                        val p = downEvent.pressure
-                        val initialX = downEvent.position.x
-                        val initialY = downEvent.position.y
-
                         val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
 
-                        if (upEvent != null && viewModel != null) {
-                            val upTime = upEvent.uptimeMillis
-
-                            // микроскольжение
-                            val swipeVectorX = upEvent.position.x - initialX
-                            val swipeVectorY = upEvent.position.y - initialY
-
-                            val dwellTime = upTime - downTime
-                            val flightTime = viewModel.calculateFlightTime(downTime)
-                            viewModel.updateLastUpTime(upTime)
-
-                            val touchData = TouchData(
-                                key = text,
-                                dwellTime = dwellTime,
-                                flightTime = flightTime,
-                                pressure = p,
-                                touchX = initialX,
-                                touchY = initialY,
-                                swipeVectorX = swipeVectorX,
-                                swipeVectorY = swipeVectorY
+                        if (upEvent != null) {
+                            viewModel.onKeyEvent(
+                                text,
+                                downEvent,
+                                upEvent
                             )
-
-                            viewModel.onKeyTouchRecorded(touchData)
                         }
                     }
                 }
