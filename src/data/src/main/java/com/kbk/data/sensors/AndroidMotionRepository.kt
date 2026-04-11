@@ -5,6 +5,8 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.os.Handler
+import android.os.HandlerThread
 import com.kbk.domain.irepository.IMotionRepository
 import com.kbk.domain.models.MotionData
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,20 +20,34 @@ class AndroidMotionRepository(context: Context) : IMotionRepository, SensorEvent
     private val gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
     private val rotVecSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
 
+    private var sensorThread: HandlerThread? = null
+    private var sensorHandler: Handler? = null
+
     private val _motionState = MutableStateFlow(MotionData())
     override val motionState: StateFlow<MotionData> = _motionState.asStateFlow()
 
-    private val curAcc = FloatArray(3)
-    private val curGyro = FloatArray(3)
-    private val curRot = FloatArray(3)
+    companion object {
+        private const val AXIS_COUNT = 3
+    }
+
+    private val curAcc = FloatArray(AXIS_COUNT)
+    private val curGyro = FloatArray(AXIS_COUNT)
+    private val curRot = FloatArray(AXIS_COUNT)
 
     override fun startTracking() {
+        if (sensorThread == null) {
+            val thread = HandlerThread("SensorThread").apply { start() }
+            sensorThread = thread
+            sensorHandler = Handler(thread.looper)
+        }
+
         listOf(accelSensor, gyroSensor, rotVecSensor).forEach { sensor ->
             sensor?.let {
                 sensorManager.registerListener(
                     this,
                     it,
-                    SensorManager.SENSOR_DELAY_FASTEST
+                    SensorManager.SENSOR_DELAY_FASTEST,
+                    sensorHandler
                 )
             }
         }
@@ -39,6 +55,10 @@ class AndroidMotionRepository(context: Context) : IMotionRepository, SensorEvent
 
     override fun stopTracking() {
         sensorManager.unregisterListener(this)
+        sensorThread?.quitSafely()
+        sensorThread = null
+        sensorHandler = null
+
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
@@ -69,5 +89,7 @@ class AndroidMotionRepository(context: Context) : IMotionRepository, SensorEvent
         }
     }
 
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
+        //
+    }
 }

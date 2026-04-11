@@ -19,10 +19,11 @@ import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.kbk.presentation.di.DependencyProvider
 import com.kbk.presentation.keyboard.KeyboardAction
 import com.kbk.presentation.keyboard.KeyboardScreen
-import com.kbk.presentation.theme.KeyboardTheme
 import com.kbk.presentation.keyboard.KeyboardViewModel
+import com.kbk.presentation.theme.KeyboardTheme
 
-class KeystrokeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwner, SavedStateRegistryOwner {
+class KeystrokeImeService : InputMethodService(), LifecycleOwner, ViewModelStoreOwner,
+    SavedStateRegistryOwner {
 
     private val lifecycleRegistry = LifecycleRegistry(this)
     private val savedStateRegistryController = SavedStateRegistryController.create(this)
@@ -45,8 +46,7 @@ class KeystrokeImeService : InputMethodService(), LifecycleOwner, ViewModelStore
             @Suppress("UNCHECKED_CAST")
             override fun <T : androidx.lifecycle.ViewModel> create(modelClass: Class<T>): T {
                 return KeyboardViewModel(
-                    dependencyProvider.biometricService,
-                    dependencyProvider.motionRepository
+                    dependencyProvider.biometricService
                 ) as T
             }
         }
@@ -80,7 +80,13 @@ class KeystrokeImeService : InputMethodService(), LifecycleOwner, ViewModelStore
         when (action) {
             is KeyboardAction.CommitText -> inputConnection.commitText(action.text, 1)
             is KeyboardAction.Delete -> inputConnection.deleteSurroundingText(1, 0)
-            is KeyboardAction.Enter -> inputConnection.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_ENTER))
+            is KeyboardAction.Enter -> inputConnection.sendKeyEvent(
+                KeyEvent(
+                    KeyEvent.ACTION_DOWN,
+                    KeyEvent.KEYCODE_ENTER
+                )
+            )
+
             is KeyboardAction.Space -> inputConnection.commitText(" ", 1)
             else -> {}
         }
@@ -88,13 +94,13 @@ class KeystrokeImeService : InputMethodService(), LifecycleOwner, ViewModelStore
 
     override fun onWindowShown() {
         super.onWindowShown()
-        viewModel.startTracking()
+        viewModel.onKeyboardShown()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
     }
 
     override fun onWindowHidden() {
         super.onWindowHidden()
-        viewModel.stopTracking()
+        viewModel.onKeyboardHidden()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
     }
 
