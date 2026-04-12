@@ -55,9 +55,9 @@ fun KeystrokeApp() {
         bottomBar = {
             CustomAnimatedBottomBar(
                 navController = navController,
-                sliderColor = MaterialTheme.colorScheme.secondary,
-                textColorSelected = MaterialTheme.colorScheme.onSecondary,
-                textColorUnselected = MaterialTheme.colorScheme.onPrimary,
+                sliderColor = MaterialTheme.colorScheme.tertiary,
+                textColorSelected = MaterialTheme.colorScheme.onTertiary,
+                textColorUnselected = MaterialTheme.colorScheme.onSecondary,
                 fontSize = 16.sp
             )
         }
@@ -107,7 +107,7 @@ private fun CustomAnimatedBottomBar(
         modifier = Modifier
             .fillMaxWidth()
             .height(72.dp)
-            .background(MaterialTheme.colorScheme.primary)
+            .background(MaterialTheme.colorScheme.secondary)
             .padding(8.dp)
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {

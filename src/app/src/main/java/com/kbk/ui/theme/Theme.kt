@@ -11,55 +11,49 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-private const val PINK_PRIMARY_LIGHT = 0xFFFF6699
-private const val PINK_SECONDARY_LIGHT = 0xFFD94075
-private const val PINK_TERTIARY_LIGHT = 0xFF81517E
-
-private const val PINK_PRIMARY_DARK = 0xFFA6385A
-private const val PINK_SECONDARY_DARK = 0xFFe03d74
-private const val PINK_TERTIARY_DARK = 0xFFF3B4EC
-
-private const val ON_PINK_LIGHT_PRIMARY = 0xFFFFFFFF
-private const val ON_PINK_LIGHT_SECONDARY = 0xFFFFFFFF
-private const val ON_PINK_LIGHT_TERTIARY = 0xFF4D254E
-
-private const val ON_PINK_DARK_PRIMARY = 0xFFFFFFFF
-private const val ON_PINK_DARK_SECONDARY = 0xFFFFFFFF
-private const val ON_PINK_DARK_TERTIARY = 0xFF4D254E
-
-private const val LIGHT_BG = 0xFFFFFFFF
-private const val DARK_BG = 0xFF000000
-private const val ON_LIGHT = 0xFF000000
+private const val PRIMARY_DARK = 0xFF1b1751
+private const val SECONDARY_DARK = 0xFF1c72bb
+private const val TERTIARY_DARK = 0x9500F8FF
+private const val DARK_BG = 0xFF0d1628
+private const val ON_PRIMARY_DARK = 0xFFFFFFFF
+private const val ON_SECONDARY_DARK = 0xFF04fbff
+private const val ON_TERTIARY_DARK = 0xFFFFFFFF
 private const val ON_DARK = 0xFFFFFFFF
 
-val PinkPrimaryLight = Color(PINK_PRIMARY_LIGHT)
-val PinkSecondaryLight = Color(PINK_SECONDARY_LIGHT)
-val PinkTertiaryLight = Color(PINK_TERTIARY_LIGHT)
-
-val PinkPrimaryDark = Color(PINK_PRIMARY_DARK)
-val PinkSecondaryDark = Color(PINK_SECONDARY_DARK)
-val PinkTertiaryDark = Color(PINK_TERTIARY_DARK)
-
-val OnPinkLightPrimary = Color(ON_PINK_LIGHT_PRIMARY)
-val OnPinkLightSecondary = Color(ON_PINK_LIGHT_SECONDARY)
-val OnPinkLightTertiary = Color(ON_PINK_LIGHT_TERTIARY)
-
-val OnPinkDarkPrimary = Color(ON_PINK_DARK_PRIMARY)
-val OnPinkDarkSecondary = Color(ON_PINK_DARK_SECONDARY)
-val OnPinkDarkTertiary = Color(ON_PINK_DARK_TERTIARY)
-
-val LightBackground = Color(LIGHT_BG)
+val PrimaryDark = Color(PRIMARY_DARK)
+val SecondaryDark = Color(SECONDARY_DARK)
+val TertiaryDark = Color(TERTIARY_DARK)
 val DarkBackground = Color(DARK_BG)
-val OnLightColor = Color(ON_LIGHT)
+val OnDarkPrimary = Color(ON_PRIMARY_DARK)
+val OnDarkSecondary = Color(ON_SECONDARY_DARK)
+val OnDarkTertiary = Color(ON_TERTIARY_DARK)
 val OnDarkColor = Color(ON_DARK)
 
+private const val PRIMARY_LIGHT = 0xFF41F6FF
+private const val SECONDARY_LIGHT = 0xFF1c72bb
+private const val TERTIARY_LIGHT = 0x9500F8FF
+private const val LIGHT_BG = 0xFFFFFFFF
+private const val ON_PRIMARY_LIGHT = 0xFF000000
+private const val ON_SECONDARY_LIGHT = 0xFF04fbff
+private const val ON_TERTIARY_LIGHT = 0xFF000000
+private const val ON_LIGHT = 0xFF000000
+
+val PrimaryLight = Color(PRIMARY_LIGHT)
+val SecondaryLight = Color(SECONDARY_LIGHT)
+val TertiaryLight = Color(TERTIARY_LIGHT)
+val LightBackground = Color(LIGHT_BG)
+val OnLightPrimary = Color(ON_PRIMARY_LIGHT)
+val OnLightSecondary = Color(ON_SECONDARY_LIGHT)
+val OnLightTertiary = Color(ON_TERTIARY_LIGHT)
+val OnLightColor = Color(ON_LIGHT)
+
 private val DarkColorScheme = darkColorScheme(
-    primary = PinkPrimaryDark,
-    onPrimary = OnPinkDarkPrimary,
-    secondary = PinkSecondaryDark,
-    onSecondary = OnPinkDarkSecondary,
-    tertiary = PinkTertiaryDark,
-    onTertiary = OnPinkDarkTertiary,
+    primary = PrimaryDark,
+    onPrimary = OnDarkPrimary,
+    secondary = SecondaryDark,
+    onSecondary = OnDarkSecondary,
+    tertiary = TertiaryDark,
+    onTertiary = OnDarkTertiary,
     background = DarkBackground,
     onBackground = OnDarkColor,
     surface = DarkBackground,
@@ -67,12 +61,12 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = PinkPrimaryLight,
-    onPrimary = OnPinkLightPrimary,
-    secondary = PinkSecondaryLight,
-    onSecondary = OnPinkLightSecondary,
-    tertiary = PinkTertiaryLight,
-    onTertiary = OnPinkLightTertiary,
+    primary = PrimaryLight,
+    onPrimary = OnLightPrimary,
+    secondary = SecondaryLight,
+    onSecondary = OnLightSecondary,
+    tertiary = TertiaryLight,
+    onTertiary = OnLightTertiary,
     background = LightBackground,
     onBackground = OnLightColor,
     surface = LightBackground,
