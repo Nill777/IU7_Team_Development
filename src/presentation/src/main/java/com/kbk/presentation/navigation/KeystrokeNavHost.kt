@@ -28,10 +28,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -41,17 +43,20 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.kbk.presentation.dashboard.DashboardScreen
 import com.kbk.presentation.dashboard.DashboardViewModel
+import com.kbk.presentation.di.DependencyProvider
 import com.kbk.presentation.playground.PlaygroundScreen
 import com.kbk.presentation.playground.PlaygroundViewModel
 import com.kbk.presentation.settings.SettingsScreen
 import com.kbk.presentation.settings.SettingsViewModel
 
 @Composable
-fun KeystrokeApp() {
+fun KeystrokeApp(viewModelFactory: ViewModelProvider.Factory) {
     val navController = rememberNavController()
 
     Scaffold(
-        modifier = Modifier.windowInsetsPadding(WindowInsets.navigationBars),
+        modifier = Modifier
+            .background(MaterialTheme.colorScheme.background)
+            .windowInsetsPadding(WindowInsets.navigationBars),
         bottomBar = {
             CustomAnimatedBottomBar(
                 navController = navController,
@@ -68,15 +73,15 @@ fun KeystrokeApp() {
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Dashboard.route) {
-                val viewModel: DashboardViewModel = viewModel()
+                val viewModel: DashboardViewModel = viewModel(factory = viewModelFactory)
                 DashboardScreen(viewModel = viewModel)
             }
             composable(Screen.Playground.route) {
-                val viewModel: PlaygroundViewModel = viewModel()
+                val viewModel: PlaygroundViewModel = viewModel(factory = viewModelFactory)
                 PlaygroundScreen(viewModel = viewModel)
             }
             composable(Screen.Settings.route) {
-                val viewModel: SettingsViewModel = viewModel()
+                val viewModel: SettingsViewModel = viewModel(factory = viewModelFactory)
                 SettingsScreen(viewModel = viewModel)
             }
         }
@@ -134,7 +139,9 @@ private fun CustomAnimatedBottomBar(
                                 indication = null
                             ) {
                                 navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    popUpTo(navController.graph.findStartDestination().id) {
+                                        saveState = true
+                                    }
                                     launchSingleTop = true
                                     restoreState = true
                                 }
