@@ -4,13 +4,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -20,33 +24,20 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val KeyHorizontalPadding = 2.dp
-private val KeyVerticalPadding = 4.dp
-private val KeyCornerRadius = 6.dp
-private val NormalTextSize = 20.sp
-private val SpecialTextSize = 22.sp
-private val ShiftTextSize = 35.sp
-private val EnterTextSize = 35.sp
-private val SpaceTextSize = 35.sp
-
-private val ChangeLayoutTextSize = 18.sp
-private val ChangeLanguageTextSize = 20.sp
-private val PunctuationMarks = 20.sp
-
 enum class KeyType {
     NORMAL, SHIFT, ENTER, SPACE, DELETE, LAYOUT_CHANGE, LANGUAGE_CHANGE, PUNCTUATION_MARKS
 }
 
 private val KeyType.fontSize: TextUnit
     get() = when (this) {
-        KeyType.NORMAL -> NormalTextSize
-        KeyType.SHIFT -> ShiftTextSize
-        KeyType.ENTER -> EnterTextSize
-        KeyType.SPACE -> SpaceTextSize
-        KeyType.LAYOUT_CHANGE -> ChangeLayoutTextSize
-        KeyType.LANGUAGE_CHANGE -> ChangeLanguageTextSize
-        KeyType.DELETE -> SpecialTextSize
-        KeyType.PUNCTUATION_MARKS -> PunctuationMarks
+        KeyType.NORMAL -> 20.sp
+        KeyType.SHIFT -> 35.sp
+        KeyType.ENTER -> 35.sp
+        KeyType.SPACE -> 35.sp
+        KeyType.LAYOUT_CHANGE -> 18.sp
+        KeyType.LANGUAGE_CHANGE -> 20.sp
+        KeyType.DELETE -> 22.sp
+        KeyType.PUNCTUATION_MARKS -> 20.sp
     }
 
 @Composable
@@ -57,6 +48,7 @@ fun KeyboardKey(
     viewModel: KeyboardViewModel,
     onClick: () -> Unit
 ) {
+    val interactionSource = remember { MutableInteractionSource() }
     val bgColor = if (type != KeyType.NORMAL) {
         MaterialTheme.colorScheme.surfaceVariant
     } else {
@@ -65,10 +57,7 @@ fun KeyboardKey(
 
     Box(
         modifier = modifier
-            .padding(horizontal = KeyHorizontalPadding, vertical = KeyVerticalPadding)
             .fillMaxSize()
-            .clip(RoundedCornerShape(KeyCornerRadius))
-            .background(bgColor)
             .pointerInput(Unit) {
                 awaitPointerEventScope {
                     while (true) {
@@ -86,14 +75,28 @@ fun KeyboardKey(
                     }
                 }
             }
-            .clickable(onClick = onClick),
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            ),
         contentAlignment = Alignment.Center
     ) {
-        Text(
-            text = text,
-            color = MaterialTheme.colorScheme.onSurface,
-            fontSize = type.fontSize,
-            maxLines = 1
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 2.dp, vertical = 4.dp)
+                .clip(RoundedCornerShape(6.dp))
+                .background(bgColor)
+                .indication(interactionSource, ripple()),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = text,
+                color = MaterialTheme.colorScheme.onSurface,
+                fontSize = type.fontSize,
+                maxLines = 1
+            )
+        }
     }
 }
