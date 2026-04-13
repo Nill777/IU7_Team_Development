@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -40,8 +41,9 @@ fun KeyboardScreen(viewModel: KeyboardViewModel, onAction: (KeyboardAction) -> U
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(KeyboardHeight)
             .background(MaterialTheme.colorScheme.background)
+            .navigationBarsPadding()
+            .height(KeyboardHeight)
             .padding(horizontal = 2.dp, vertical = 4.dp)
     ) {
         when (layoutType) {
