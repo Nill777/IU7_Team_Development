@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -33,10 +34,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.kbk.domain.models.BiometricSample
 import com.kbk.presentation.keyboard.KeyboardConstants
+import com.kbk.presentation.keyboard.KeyboardConstants.DOUBLE_KEYBOARD_PADDING_HORIZONTAL
+import com.kbk.presentation.keyboard.KeyboardConstants.DOUBLE_KEYBOARD_PADDING_VERTICAL
+import com.kbk.presentation.keyboard.KeyboardConstants.KEYBOARD_HEIGHT
+import com.kbk.presentation.keyboard.KeyboardConstants.KEYBOARD_PADDING_HORIZONTAL
+import com.kbk.presentation.keyboard.KeyboardConstants.KEYBOARD_PADDING_VERTICAL
 import com.kbk.presentation.keyboard.KeyboardLanguage
 import com.kbk.presentation.keyboard.KeyboardLayouts
-import com.kbk.presentation.keyboard.KeyboardViewModel
 import com.kbk.presentation.keyboard.LettersLayout
+import com.kbk.presentation.theme.HeatmapTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.math.exp
@@ -50,11 +56,10 @@ fun getHeatmapColor(value: Float, min: Float, max: Float): Color {
 
 @SuppressLint("ConfigurationScreenWidthHeight")
 @Composable
-fun FullKeyboardHeatmap(
+fun KeyboardHeatmap(
     isRu: Boolean,
     samples: List<BiometricSample>,
-    metricType: HeatmapMetricType,
-    keyboardViewModel: KeyboardViewModel
+    metricType: HeatmapMetricType
 ) {
     var imageBitmap by remember { mutableStateOf<ImageBitmap?>(null) }
     var minVal by remember { mutableFloatStateOf(0f) }
@@ -67,8 +72,9 @@ fun FullKeyboardHeatmap(
     // В KeyboardScreen: fillMaxWidth, height(280.dp), padding(horizontal = 2.dp, vertical = 4.dp)
     val configuration = LocalConfiguration.current
     val origWidthPx =
-        with(LocalDensity.current) { configuration.screenWidthDp.dp.toPx() - 4.dp.toPx() }
-    val origHeightPx = with(LocalDensity.current) { 280.dp.toPx() - 8.dp.toPx() }
+        with(LocalDensity.current) { configuration.screenWidthDp.dp.toPx() - DOUBLE_KEYBOARD_PADDING_HORIZONTAL.toPx() }
+    val origHeightPx =
+        with(LocalDensity.current) { KEYBOARD_HEIGHT.toPx() - DOUBLE_KEYBOARD_PADDING_VERTICAL.toPx() }
 
     // Масштабируем пиксели (считаем карту в 4 раза меньше, а Canvas ее растянет с красивым блюром)
     val scaleFactor = 0.25f
@@ -76,18 +82,21 @@ fun FullKeyboardHeatmap(
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxWidth()
-            .height(280.dp)
+            .height(KEYBOARD_HEIGHT)
             .background(Color.White)
+            .padding(horizontal = KEYBOARD_PADDING_HORIZONTAL, vertical = KEYBOARD_PADDING_VERTICAL)
     ) {
         val widthPx = constraints.maxWidth.toFloat()
         val heightPx = constraints.maxHeight.toFloat()
         Column(Modifier.fillMaxSize()) {
-            LettersLayout(
-                language = if (isRu) KeyboardLanguage.RU else KeyboardLanguage.EN,
-                isShifted = false,
-                viewModel = keyboardViewModel,
-                onAction = {}
-            )
+            HeatmapTheme {
+                LettersLayout(
+                    language = if (isRu) KeyboardLanguage.RU else KeyboardLanguage.EN,
+                    isShifted = false,
+                    isBackdrop = true,
+                    onAction = {}
+                )
+            }
         }
 
         LaunchedEffect(samples, metricType, isRu, widthPx, heightPx) {
@@ -148,22 +157,28 @@ fun FullKeyboardHeatmap(
  *
  * * `(x, y)` — координаты пикселя, для которого мы считаем "тепло".
  * * `(cx, cy)` — координаты центра нашего касания (нашего "события").
- * * `h` — ширина ядра. Это важный параметр, который мы подбираем. Он определяет, насколько "широко" растекается тепло от одного касания. В коде это наш `radiusPx`.
+ * * `h` — ширина ядра. Это важный параметр, который мы подбираем.
+ * Он определяет, насколько "широко" растекается тепло от одного касания. В коде это наш `radiusPx`.
  *
  * #### Считаем метрики для каждого пикселя
  *
- * Мы знаем, как одно касание создает "тепловое пятно", нужно рассчитать итоговое значение для каждого пикселя на всей карте.
+ * Мы знаем, как одно касание создает "тепловое пятно", нужно рассчитать итоговое значение
+ * для каждого пикселя на всей карте.
  *
- * Для метрики **"Частота нажатий":** "Тепло" в каждом пикселе — это просто сумма "влияний" (весов) от всех касаний.
+ * Для метрики **"Частота нажатий":** "Тепло" в каждом пикселе — это просто сумма "влияний" (весов)
+ * от всех касаний.
  *
  * `Heat(x, y) = Σ w_i(x, y)`
  *
  * * `n` — общее количество касаний.
  * * `w_i(x,y)` — Гауссов вес от *i*-го касания в пикселе `(x, y)`. В коде это массив `weightGrid`.
  *
- * Для метрик **"Время удержания"** и **"Сила нажатия":** сложнее, мы не можем просто суммировать миллисекунды. Если в одну точку попали два касания: одно на 100 мс, другое на 50 мс, — итоговое значение должно быть где-то посередине, а не 150 мс.
+ * Для метрик **"Время удержания"** и **"Сила нажатия":** сложнее, мы не можем просто суммировать миллисекунды.
+ * Если в одну точку попали два касания: одно на 100 мс, другое на 50 мс, — итоговое значение
+ * должно быть где-то посередине, а не 150 мс.
  *
- * Нам нужно рассчитать **взвешенное среднее**. "Тепло" в пикселе — это среднее значение метрики всех касаний, взвешенное по их Гауссовому влиянию на этот пиксель.
+ * Нам нужно рассчитать **взвешенное среднее**. "Тепло" в пикселе — это среднее значение метрики всех касаний,
+ * взвешенное по их Гауссовому влиянию на этот пиксель.
  *
  * `Value(x, y) = Σ(v_i * w_i(x, y)) / Σ w_i(x, y)`
  *

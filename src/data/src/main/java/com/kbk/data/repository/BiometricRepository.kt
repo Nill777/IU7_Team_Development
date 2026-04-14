@@ -2,10 +2,13 @@ package com.kbk.data.repository
 
 import android.util.Log
 import com.kbk.data.local.dao.BiometricSampleDao
+import com.kbk.data.mapper.toDomain
 import com.kbk.data.mapper.toEntity
 import com.kbk.domain.irepository.IBiometricRepository
 import com.kbk.domain.models.BiometricSample
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 class BiometricRepository(private val dao: BiometricSampleDao) : IBiometricRepository {
@@ -20,6 +23,12 @@ class BiometricRepository(private val dao: BiometricSampleDao) : IBiometricRepos
                         "Dwell=${sample.touchData.dwellTime}ms, " +
                         "AccX=${sample.motionData.accX}"
             )
+        }
+    }
+
+    override fun getAllSamples(): Flow<List<BiometricSample>> {
+        return dao.getAllSamples().map { list ->
+            list.map { it.toDomain() }
         }
     }
 }
