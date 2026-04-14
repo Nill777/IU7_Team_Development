@@ -35,7 +35,7 @@ class DashboardViewModel(
                 val keysFreq = data.groupingBy { it.touchData.key }.eachCount()
                 val sortedKeys = keysFreq.entries.sortedByDescending { it.value }.map { it.key }
 
-                // Вычисление матрицы переходов (Flight Time)
+                // матрица переходов по flight
                 val matrix = mutableMapOf<Pair<String, String>, Float>()
                 val sortedData = data.sortedBy { it.motionData.timestamp }
                 for (i in 0 until sortedData.size - 1) {
