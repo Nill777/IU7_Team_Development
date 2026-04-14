@@ -29,7 +29,7 @@ val OnDarkSecondary = Color(ON_SECONDARY_DARK)
 val OnDarkTertiary = Color(ON_TERTIARY_DARK)
 val OnDarkColor = Color(ON_DARK)
 
-private const val PRIMARY_LIGHT = 0xFF41F6FF
+private const val PRIMARY_LIGHT = 0xFFCDE2F5
 private const val SECONDARY_LIGHT = 0xFF1c72bb
 private const val TERTIARY_LIGHT = 0x9500F8FF
 private const val LIGHT_BG = 0xFFFFFFFF

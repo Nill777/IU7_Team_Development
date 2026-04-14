@@ -28,7 +28,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -43,7 +42,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.kbk.presentation.dashboard.DashboardScreen
 import com.kbk.presentation.dashboard.DashboardViewModel
-import com.kbk.presentation.di.DependencyProvider
 import com.kbk.presentation.playground.PlaygroundScreen
 import com.kbk.presentation.playground.PlaygroundViewModel
 import com.kbk.presentation.settings.SettingsScreen
