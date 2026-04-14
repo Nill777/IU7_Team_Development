@@ -1,6 +1,7 @@
 package com.kbk.presentation.keyboard
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.waitForUpOrCancellation
@@ -18,11 +19,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.kbk.presentation.keyboard.KeyboardConstants.KEYBOARD_PADDING_HORIZONTAL
+import com.kbk.presentation.keyboard.KeyboardConstants.KEYBOARD_PADDING_VERTICAL
+import com.kbk.presentation.keyboard.KeyboardConstants.ROUNDED_CORNER_SHAPE
 
 enum class KeyType {
     NORMAL, SHIFT, ENTER, SPACE, DELETE, LAYOUT_CHANGE, LANGUAGE_CHANGE, PUNCTUATION_MARKS
@@ -45,7 +50,8 @@ fun KeyboardKey(
     text: String,
     modifier: Modifier = Modifier,
     type: KeyType = KeyType.NORMAL,
-    viewModel: KeyboardViewModel,
+    viewModel: KeyboardViewModel? = null,
+    isBackdrop: Boolean = false,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -54,40 +60,54 @@ fun KeyboardKey(
     } else {
         MaterialTheme.colorScheme.surface
     }
+    val borderColor = if (isBackdrop) Color.Black else Color.Transparent
+    val borderWidth = if (isBackdrop) 1.dp else 0.dp
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        // pass = Initial перехват данных до onClick
-                        val downEvent = awaitFirstDown(pass = PointerEventPass.Initial)
-                        val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
+            .then(
+                if (!isBackdrop && viewModel != null) {
+                    Modifier
+                        .pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    // pass = Initial перехват данных до onClick
+                                    val downEvent = awaitFirstDown(pass = PointerEventPass.Initial)
+                                    val upEvent =
+                                        waitForUpOrCancellation(pass = PointerEventPass.Initial)
 
-                        if (upEvent != null) {
-                            viewModel.onKeyEvent(
-                                text,
-                                downEvent,
-                                upEvent
-                            )
+                                    if (upEvent != null) {
+                                        viewModel.onKeyEvent(
+                                            text,
+                                            downEvent,
+                                            upEvent
+                                        )
+                                    }
+                                }
+                            }
                         }
-                    }
+                        .clickable(
+                            interactionSource = interactionSource,
+                            indication = null,
+                            onClick = onClick
+                        )
+                } else {
+                    Modifier
                 }
-            }
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = onClick
             ),
         contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 2.dp, vertical = 4.dp)
-                .clip(RoundedCornerShape(6.dp))
+                .padding(
+                    horizontal = KEYBOARD_PADDING_HORIZONTAL,
+                    vertical = KEYBOARD_PADDING_VERTICAL
+                )
+                .clip(RoundedCornerShape(ROUNDED_CORNER_SHAPE))
                 .background(bgColor)
+                .border(borderWidth, borderColor, RoundedCornerShape(ROUNDED_CORNER_SHAPE))
                 .indication(interactionSource, ripple()),
             contentAlignment = Alignment.Center
         ) {
