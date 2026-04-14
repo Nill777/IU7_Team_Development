@@ -126,7 +126,7 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                     style = MaterialTheme.typography.titleMedium
                 )
                 Spacer(Modifier.height(8.dp))
-                FullKeyboardHeatmap(
+                KeyboardHeatmap(
                     isRu = true,
                     samples = state.samples,
                     metricType = state.heatmapMetric
@@ -138,10 +138,100 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                     style = MaterialTheme.typography.titleMedium
                 )
                 Spacer(Modifier.height(8.dp))
-                FullKeyboardHeatmap(
+                KeyboardHeatmap(
                     isRu = false,
                     samples = state.samples,
                     metricType = state.heatmapMetric
+                )
+            }
+        }
+
+        Card(
+            elevation = CardDefaults.cardElevation(4.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            )
+        ) {
+            Column(Modifier.padding(8.dp)) {
+                Text("Анализ распределения", style = MaterialTheme.typography.headlineSmall)
+                Spacer(Modifier.height(8.dp))
+
+                var expandedKey by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = expandedKey,
+                    onExpandedChange = { expandedKey = !expandedKey }) {
+                    TextField(
+                        readOnly = true,
+                        value = if (state.selectedKey.isEmpty()) "Клавиша:[Пробел]" else "Клавиша: ${state.selectedKey}",
+                        onValueChange = { },
+                        label = { Text("Анализируемая клавиша") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedKey) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth(),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.background,
+                            focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                            focusedLabelColor = MaterialTheme.colorScheme.onBackground,
+
+                            unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                            unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                            unfocusedLabelColor = MaterialTheme.colorScheme.onBackground,
+
+                            focusedIndicatorColor = MaterialTheme.colorScheme.secondary,
+                            unfocusedIndicatorColor = MaterialTheme.colorScheme.onPrimary
+                        )
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedKey,
+                        onDismissRequest = { expandedKey = false },
+                        containerColor = MaterialTheme.colorScheme.background
+                    ) {
+                        state.sortedAvailableKeys.forEach { key ->
+                            val displayKey = key.ifEmpty { "[Пробел]" }
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        displayKey,
+                                        color = MaterialTheme.colorScheme.onBackground
+                                    )
+                                },
+                                onClick = { viewModel.setSelectedKey(key); expandedKey = false }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                HistogramChart(
+                    title = "Время удержания", unit = "мс",
+                    samples = state.samples, targetKey = state.selectedKey,
+                    valueSelector = { it.touchData.dwellTime.toFloat() }
+                )
+
+                HistogramChart(
+                    title = "Время полёта", unit = "мс",
+                    samples = state.samples, targetKey = state.selectedKey,
+                    valueSelector = { it.touchData.flightTime.toFloat() }
+                )
+
+                HistogramChart(
+                    title = "Сила нажатия", unit = "у.е.",
+                    samples = state.samples, targetKey = state.selectedKey,
+                    valueSelector = { it.touchData.pressure }
+                )
+
+                HistogramChart(
+                    title = "Смещение по X", unit = "px",
+                    samples = state.samples, targetKey = state.selectedKey,
+                    valueSelector = { it.touchData.touchX }
+                )
+
+                HistogramChart(
+                    title = "Смещение по Y", unit = "px",
+                    samples = state.samples, targetKey = state.selectedKey,
+                    valueSelector = { it.touchData.touchY }
                 )
             }
         }
