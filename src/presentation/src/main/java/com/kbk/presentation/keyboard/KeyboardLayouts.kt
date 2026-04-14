@@ -1,5 +1,7 @@
 package com.kbk.presentation.keyboard
 
+import androidx.compose.ui.unit.dp
+
 object KeyboardLayouts {
     val RU_ROW_1 = listOf("й", "ц", "у", "к", "е", "н", "г", "ш", "щ", "з", "х")
     val RU_ROW_2 = listOf("ф", "ы", "в", "а", "п", "р", "о", "л", "д", "ж", "э")
@@ -25,4 +27,11 @@ object KeyboardConstants {
     const val KEY_WEIGHT_SPACE = 5f
     const val KEY_WEIGHT_SYMBOLS_SPACE = 3f
     const val ROW_PADDING = 0.5f
+
+    val KEYBOARD_HEIGHT = 280.dp
+    val KEYBOARD_PADDING_HORIZONTAL = 2.dp
+    val KEYBOARD_PADDING_VERTICAL = 4.dp
+    val DOUBLE_KEYBOARD_PADDING_HORIZONTAL = 4.dp
+    val DOUBLE_KEYBOARD_PADDING_VERTICAL = 8.dp
+    val ROUNDED_CORNER_SHAPE = 6.dp
 }
