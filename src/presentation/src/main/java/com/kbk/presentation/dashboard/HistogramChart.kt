@@ -87,7 +87,7 @@ fun HistogramChart(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(220.dp)
-                .background(Color(0xFFFAFAFA))
+                .background(Color.White)
         ) {
             val padLeft = 60f
             val padBottom = 50f
@@ -201,21 +201,21 @@ fun HistogramChart(
             drawText(
                 textMeasurer.measure(
                     "шт",
-                    TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 ), topLeft = Offset(
-                    padLeft/1.5f,
-                    padTop/3
+                    padLeft/1.7f,
+                    padTop/10f
                 )
             )
             val xLabel = textMeasurer.measure(
                 unit,
-                TextStyle(fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold)
             )
             drawText(
                 xLabel,
                 topLeft = Offset(
                     size.width - padLeft,
-                    size.height - padTop
+                    size.height - padTop/0.85f
                 )
             )
         }
