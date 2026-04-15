@@ -4,13 +4,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kbk.domain.iservice.IBiometricService
 import com.kbk.domain.models.BiometricSample
-import com.kbk.presentation.keyboard.KeyboardLayouts
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 enum class HeatmapMetricType(val label: String, val unit: String) {
     FREQUENCY("Частота нажатий", "шт"),
     DWELL_TIME("Время удержания", "мс"),
     PRESSURE("Сила нажатия", "у.е.")
+}
+
+enum class SensorType {
+    ACCELEROMETER, GYROSCOPE, ROTATION_VECTOR
 }
 
 data class DashboardUiState(
