@@ -28,9 +28,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -162,7 +165,7 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                     onExpandedChange = { expandedKey = !expandedKey }) {
                     TextField(
                         readOnly = true,
-                        value = if (state.selectedKey.isEmpty()) "Клавиша:[Пробел]" else "Клавиша: ${state.selectedKey}",
+                        value = if (state.selectedKey.isEmpty()) "Клавиша: Пробел" else "Клавиша: ${state.selectedKey}",
                         onValueChange = { },
                         label = { Text("Анализируемая клавиша") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedKey) },
@@ -188,7 +191,7 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                         containerColor = MaterialTheme.colorScheme.background
                     ) {
                         state.sortedAvailableKeys.forEach { key ->
-                            val displayKey = key.ifEmpty { "[Пробел]" }
+                            val displayKey = key.ifEmpty { "Пробел" }
                             DropdownMenuItem(
                                 text = {
                                     Text(
@@ -232,6 +235,56 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                     title = "Смещение по Y", unit = "px",
                     samples = state.samples, targetKey = state.selectedKey,
                     valueSelector = { it.touchData.touchY }
+                )
+                TouchSpreadChart(
+                    title = "Кучность касаний",
+                    samples = state.samples,
+                    targetKey = state.selectedKey
+                )
+            }
+        }
+
+        Card(
+            elevation = CardDefaults.cardElevation(4.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            )
+        ) {
+            Column(Modifier.padding(8.dp)) {
+                Text("Матрица переходов", style = MaterialTheme.typography.headlineSmall)
+                Spacer(modifier = Modifier.height(8.dp))
+                TransitionMatrixChart(matrix = state.transitionMatrix)
+            }
+        }
+
+        Card(
+            elevation = CardDefaults.cardElevation(4.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primary
+            )
+        ) {
+            Column(Modifier.padding(8.dp)) {
+                Text("Микромоторика", style = MaterialTheme.typography.headlineSmall)
+                Spacer(Modifier.height(8.dp))
+                RadarChart(
+                    "Акселерометр",
+                    state.samples,
+                    SensorType.ACCELEROMETER,
+                    Color(0xFFF44336)
+                )
+                Spacer(Modifier.height(8.dp))
+                RadarChart(
+                    "Гироскоп",
+                    state.samples,
+                    SensorType.GYROSCOPE,
+                    Color(0xFF4CAF50)
+                )
+                Spacer(Modifier.height(8.dp))
+                RadarChart(
+                    "Вектор поворота",
+                    state.samples,
+                    SensorType.ROTATION_VECTOR,
+                    Color(0xFF2196F3)
                 )
             }
         }
