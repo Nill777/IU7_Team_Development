@@ -45,29 +45,33 @@ private val KeyType.fontSize: TextUnit
         KeyType.PUNCTUATION_MARKS -> 20.sp
     }
 
+data class KeyboardKeyParams(
+    val text: String,
+    val type: KeyType = KeyType.NORMAL,
+    val viewModel: KeyboardViewModel? = null,
+    val isBackdrop: Boolean = false
+)
+
 @Composable
 fun KeyboardKey(
-    text: String,
+    params: KeyboardKeyParams,
     modifier: Modifier = Modifier,
-    type: KeyType = KeyType.NORMAL,
-    viewModel: KeyboardViewModel? = null,
-    isBackdrop: Boolean = false,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val bgColor = if (type != KeyType.NORMAL) {
+    val bgColor = if (params.type != KeyType.NORMAL) {
         MaterialTheme.colorScheme.surfaceVariant
     } else {
         MaterialTheme.colorScheme.surface
     }
-    val borderColor = if (isBackdrop) Color.Black else Color.Transparent
-    val borderWidth = if (isBackdrop) 1.dp else 0.dp
+    val borderColor = if (params.isBackdrop) Color.Black else Color.Transparent
+    val borderWidth = if (params.isBackdrop) 1.dp else 0.dp
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .then(
-                if (!isBackdrop && viewModel != null) {
+                if (!params.isBackdrop && params.viewModel != null) {
                     Modifier
                         .pointerInput(Unit) {
                             awaitPointerEventScope {
@@ -78,8 +82,8 @@ fun KeyboardKey(
                                         waitForUpOrCancellation(pass = PointerEventPass.Initial)
 
                                     if (upEvent != null) {
-                                        viewModel.onKeyEvent(
-                                            text,
+                                        params.viewModel.onKeyEvent(
+                                            params.text,
                                             downEvent,
                                             upEvent
                                         )
@@ -98,25 +102,44 @@ fun KeyboardKey(
             ),
         contentAlignment = Alignment.Center
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(
-                    horizontal = KEYBOARD_PADDING_HORIZONTAL,
-                    vertical = KEYBOARD_PADDING_VERTICAL
-                )
-                .clip(RoundedCornerShape(ROUNDED_CORNER_SHAPE))
-                .background(bgColor)
-                .border(borderWidth, borderColor, RoundedCornerShape(ROUNDED_CORNER_SHAPE))
-                .indication(interactionSource, ripple()),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = text,
-                color = MaterialTheme.colorScheme.onSurface,
-                fontSize = type.fontSize,
-                maxLines = 1
+        KeyboardKeyContent(
+            text = params.text,
+            type = params.type,
+            bgColor = bgColor,
+            borderColor = borderColor,
+            borderWidth = borderWidth,
+            interactionSource = interactionSource
+        )
+    }
+}
+
+@Composable
+private fun KeyboardKeyContent(
+    text: String,
+    type: KeyType,
+    bgColor: Color,
+    borderColor: Color,
+    borderWidth: androidx.compose.ui.unit.Dp,
+    interactionSource: MutableInteractionSource
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(
+                horizontal = KEYBOARD_PADDING_HORIZONTAL,
+                vertical = KEYBOARD_PADDING_VERTICAL
             )
-        }
+            .clip(RoundedCornerShape(ROUNDED_CORNER_SHAPE))
+            .background(bgColor)
+            .border(borderWidth, borderColor, RoundedCornerShape(ROUNDED_CORNER_SHAPE))
+            .indication(interactionSource, ripple()),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = text,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = type.fontSize,
+            maxLines = 1
+        )
     }
 }
