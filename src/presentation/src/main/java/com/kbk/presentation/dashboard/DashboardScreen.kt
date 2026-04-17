@@ -33,7 +33,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val DASHBOARD_PADDING = 8.dp
+private val DASHBOARD_SPACING = 24.dp
+private val CARD_ELEVATION = 4.dp
+private val EMPTY_TEXT_SIZE = 18.sp
+private val NO_MATRIX_TEXT_SIZE = 14.sp
+private val COLOR_ACCELEROMETER = Color(0xFFF44336)
+private val COLOR_GYROSCOPE = Color(0xFF4CAF50)
+private val COLOR_ROTATION = Color(0xFF2196F3)
+
 @Composable
 fun DashboardScreen(viewModel: DashboardViewModel) {
     val state by viewModel.uiState.collectAsState()
@@ -42,7 +50,7 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text(
                 if (state.isLoading) "Загрузка..." else "Нет данных. Поэксплуатируйте клавиатуру.",
-                fontSize = 18.sp
+                fontSize = EMPTY_TEXT_SIZE
             )
         }
         return
@@ -52,8 +60,8 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(8.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
+            .padding(DASHBOARD_PADDING),
+        verticalArrangement = Arrangement.spacedBy(DASHBOARD_SPACING)
     ) {
         Text(
             "Биометрический анализ",
@@ -61,246 +69,265 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
             textAlign = TextAlign.Center
         )
 
-        Card(
-            elevation = CardDefaults.cardElevation(4.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primary
-            )
-        ) {
-            Column(Modifier.padding(8.dp)) {
-                Text("Тепловая карта набора", style = MaterialTheme.typography.headlineSmall)
-                Spacer(Modifier.height(8.dp))
+        HeatmapCard(state, viewModel)
+        DistributionCard(state, viewModel)
+        TransitionMatrixCard(state)
+        MicromotorCard(state)
+    }
+}
 
-                var expanded by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HeatmapCard(state: DashboardUiState, viewModel: DashboardViewModel) {
+    Card(
+        elevation = CardDefaults.cardElevation(CARD_ELEVATION),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primary
+        )
+    ) {
+        Column(Modifier.padding(DASHBOARD_PADDING)) {
+            Text("Тепловая карта набора", style = MaterialTheme.typography.headlineSmall)
+            Spacer(Modifier.height(DASHBOARD_PADDING))
+
+            var expanded by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = expanded,
+                onExpandedChange = { expanded = !expanded }
+            ) {
+                TextField(
+                    readOnly = true,
+                    value = state.heatmapMetric.label,
+                    onValueChange = { },
+                    label = { Text("Отображаемая метрика") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth(),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.background,
+                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        focusedLabelColor = MaterialTheme.colorScheme.onBackground,
+
+                        unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onBackground,
+
+                        focusedIndicatorColor = MaterialTheme.colorScheme.secondary,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.onPrimary
+                    )
+
+                )
+                ExposedDropdownMenu(
                     expanded = expanded,
-                    onExpandedChange = { expanded = !expanded }
+                    onDismissRequest = { expanded = false },
+                    containerColor = MaterialTheme.colorScheme.background
                 ) {
-                    TextField(
-                        readOnly = true,
-                        value = state.heatmapMetric.label,
-                        onValueChange = { },
-                        label = { Text("Отображаемая метрика") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier
-                            .menuAnchor()
-                            .fillMaxWidth(),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.background,
-                            focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                            focusedLabelColor = MaterialTheme.colorScheme.onBackground,
-
-                            unfocusedContainerColor = MaterialTheme.colorScheme.background,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-                            unfocusedLabelColor = MaterialTheme.colorScheme.onBackground,
-
-                            focusedIndicatorColor = MaterialTheme.colorScheme.secondary,
-                            unfocusedIndicatorColor = MaterialTheme.colorScheme.onPrimary
+                    HeatmapMetricType.entries.forEach { metric ->
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    metric.label,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                            },
+                            onClick = {
+                                viewModel.setHeatmapMetric(metric)
+                                expanded = false
+                            }
                         )
-
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false },
-                        containerColor = MaterialTheme.colorScheme.background
-                    ) {
-                        HeatmapMetricType.entries.forEach { metric ->
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        metric.label,
-                                        color = MaterialTheme.colorScheme.onBackground
-                                    )
-                                },
-                                onClick = {
-                                    viewModel.setHeatmapMetric(metric)
-                                    expanded = false
-                                }
-                            )
-                        }
                     }
                 }
-
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "Русская раскладка:",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(Modifier.height(8.dp))
-                KeyboardHeatmap(
-                    isRu = true,
-                    samples = state.samples,
-                    metricType = state.heatmapMetric
-                )
-
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "Английская раскладка:",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(Modifier.height(8.dp))
-                KeyboardHeatmap(
-                    isRu = false,
-                    samples = state.samples,
-                    metricType = state.heatmapMetric
-                )
             }
-        }
 
-        Card(
-            elevation = CardDefaults.cardElevation(4.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primary
+            Spacer(Modifier.height(DASHBOARD_PADDING))
+            Text(
+                "Русская раскладка:",
+                style = MaterialTheme.typography.titleMedium
             )
-        ) {
-            Column(Modifier.padding(8.dp)) {
-                Text("Анализ распределения", style = MaterialTheme.typography.headlineSmall)
-                Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(DASHBOARD_PADDING))
+            KeyboardHeatmap(
+                isRu = true,
+                samples = state.samples,
+                metricType = state.heatmapMetric
+            )
 
-                var expandedKey by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
+            Spacer(Modifier.height(DASHBOARD_PADDING))
+            Text(
+                "Английская раскладка:",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(Modifier.height(DASHBOARD_PADDING))
+            KeyboardHeatmap(
+                isRu = false,
+                samples = state.samples,
+                metricType = state.heatmapMetric
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DistributionCard(state: DashboardUiState, viewModel: DashboardViewModel) {
+    Card(
+        elevation = CardDefaults.cardElevation(CARD_ELEVATION),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primary
+        )
+    ) {
+        Column(Modifier.padding(DASHBOARD_PADDING)) {
+            Text("Анализ распределения", style = MaterialTheme.typography.headlineSmall)
+            Spacer(Modifier.height(DASHBOARD_PADDING))
+
+            var expandedKey by remember { mutableStateOf(false) }
+            ExposedDropdownMenuBox(
+                expanded = expandedKey,
+                onExpandedChange = { expandedKey = !expandedKey }) {
+                TextField(
+                    readOnly = true,
+                    value = if (state.selectedKey.isEmpty()) "Клавиша: Пробел" else "Клавиша: ${state.selectedKey}",
+                    onValueChange = { },
+                    label = { Text("Анализируемая клавиша") },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedKey) },
+                    modifier = Modifier
+                        .menuAnchor()
+                        .fillMaxWidth(),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = MaterialTheme.colorScheme.background,
+                        focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        focusedLabelColor = MaterialTheme.colorScheme.onBackground,
+
+                        unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                        unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                        unfocusedLabelColor = MaterialTheme.colorScheme.onBackground,
+
+                        focusedIndicatorColor = MaterialTheme.colorScheme.secondary,
+                        unfocusedIndicatorColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                )
+                ExposedDropdownMenu(
                     expanded = expandedKey,
-                    onExpandedChange = { expandedKey = !expandedKey }) {
-                    TextField(
-                        readOnly = true,
-                        value = if (state.selectedKey.isEmpty()) "Клавиша: Пробел" else "Клавиша: ${state.selectedKey}",
-                        onValueChange = { },
-                        label = { Text("Анализируемая клавиша") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedKey) },
-                        modifier = Modifier
-                            .menuAnchor()
-                            .fillMaxWidth(),
-                        colors = TextFieldDefaults.colors(
-                            focusedContainerColor = MaterialTheme.colorScheme.background,
-                            focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                            focusedLabelColor = MaterialTheme.colorScheme.onBackground,
-
-                            unfocusedContainerColor = MaterialTheme.colorScheme.background,
-                            unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-                            unfocusedLabelColor = MaterialTheme.colorScheme.onBackground,
-
-                            focusedIndicatorColor = MaterialTheme.colorScheme.secondary,
-                            unfocusedIndicatorColor = MaterialTheme.colorScheme.onPrimary
+                    onDismissRequest = { expandedKey = false },
+                    containerColor = MaterialTheme.colorScheme.background
+                ) {
+                    state.sortedAvailableKeys.forEach { key ->
+                        val displayKey = key.ifEmpty { "Пробел" }
+                        DropdownMenuItem(
+                            text = {
+                                Text(
+                                    displayKey,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                            },
+                            onClick = { viewModel.setSelectedKey(key); expandedKey = false }
                         )
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expandedKey,
-                        onDismissRequest = { expandedKey = false },
-                        containerColor = MaterialTheme.colorScheme.background
-                    ) {
-                        state.sortedAvailableKeys.forEach { key ->
-                            val displayKey = key.ifEmpty { "Пробел" }
-                            DropdownMenuItem(
-                                text = {
-                                    Text(
-                                        displayKey,
-                                        color = MaterialTheme.colorScheme.onBackground
-                                    )
-                                },
-                                onClick = { viewModel.setSelectedKey(key); expandedKey = false }
-                            )
-                        }
                     }
                 }
-                Spacer(Modifier.height(8.dp))
-                HistogramChart(
-                    title = "Время удержания", unit = "мс",
-                    samples = state.samples, targetKey = state.selectedKey,
-                    valueSelector = { it.touchData.dwellTime.toFloat() }
-                )
-                Spacer(Modifier.height(8.dp))
-                HistogramChart(
-                    title = "Время полёта", unit = "мс",
-                    samples = state.samples, targetKey = state.selectedKey,
-                    valueSelector = { it.touchData.flightTime.toFloat() }
-                )
-                Spacer(Modifier.height(8.dp))
-                HistogramChart(
-                    title = "Сила нажатия", unit = "у.е.",
-                    samples = state.samples, targetKey = state.selectedKey,
-                    valueSelector = { it.touchData.pressure }
-                )
-                Spacer(Modifier.height(8.dp))
-                HistogramChart(
-                    title = "Смещение по X", unit = "px",
-                    samples = state.samples, targetKey = state.selectedKey,
-                    valueSelector = { it.touchData.touchX }
-                )
-                Spacer(Modifier.height(8.dp))
-                HistogramChart(
-                    title = "Смещение по Y", unit = "px",
-                    samples = state.samples, targetKey = state.selectedKey,
-                    valueSelector = { it.touchData.touchY }
-                )
-                Spacer(Modifier.height(8.dp))
-                TouchSpreadChart(
-                    title = "Кучность касаний",
-                    samples = state.samples,
-                    targetKey = state.selectedKey
+            }
+            Spacer(Modifier.height(DASHBOARD_PADDING))
+            HistogramChart(
+                title = "Время удержания", unit = "мс",
+                samples = state.samples, targetKey = state.selectedKey,
+                valueSelector = { it.touchData.dwellTime.toFloat() }
+            )
+            Spacer(Modifier.height(DASHBOARD_PADDING))
+            HistogramChart(
+                title = "Время полёта", unit = "мс",
+                samples = state.samples, targetKey = state.selectedKey,
+                valueSelector = { it.touchData.flightTime.toFloat() }
+            )
+            Spacer(Modifier.height(DASHBOARD_PADDING))
+            HistogramChart(
+                title = "Сила нажатия", unit = "у.е.",
+                samples = state.samples, targetKey = state.selectedKey,
+                valueSelector = { it.touchData.pressure }
+            )
+            Spacer(Modifier.height(DASHBOARD_PADDING))
+            HistogramChart(
+                title = "Смещение по X", unit = "px",
+                samples = state.samples, targetKey = state.selectedKey,
+                valueSelector = { it.touchData.touchX }
+            )
+            Spacer(Modifier.height(DASHBOARD_PADDING))
+            HistogramChart(
+                title = "Смещение по Y", unit = "px",
+                samples = state.samples, targetKey = state.selectedKey,
+                valueSelector = { it.touchData.touchY }
+            )
+            Spacer(Modifier.height(DASHBOARD_PADDING))
+            TouchSpreadChart(
+                title = "Кучность касаний",
+                samples = state.samples,
+                targetKey = state.selectedKey
+            )
+        }
+    }
+}
+
+@Composable
+private fun TransitionMatrixCard(state: DashboardUiState) {
+    Card(
+        elevation = CardDefaults.cardElevation(CARD_ELEVATION),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primary
+        )
+    ) {
+        Column(Modifier.padding(DASHBOARD_PADDING)) {
+            Text("Матрицы переходов", style = MaterialTheme.typography.headlineSmall)
+            Spacer(modifier = Modifier.height(DASHBOARD_PADDING))
+
+            TransitionMatrixChart(
+                title = "Русские буквы",
+                matrix = state.ruTransitionMatrix
+            )
+            Spacer(Modifier.height(DASHBOARD_PADDING))
+            TransitionMatrixChart(
+                title = "Английские буквы",
+                matrix = state.enTransitionMatrix
+            )
+
+            if (state.ruTransitionMatrix.isEmpty() && state.enTransitionMatrix.isEmpty()) {
+                Text(
+                    "Недостаточно данных для построения матриц",
+                    color = Color.Gray,
+                    fontSize = NO_MATRIX_TEXT_SIZE
                 )
             }
         }
+    }
+}
 
-        Card(
-            elevation = CardDefaults.cardElevation(4.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primary
+@Composable
+private fun MicromotorCard(state: DashboardUiState) {
+    Card(
+        elevation = CardDefaults.cardElevation(CARD_ELEVATION),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primary
+        )
+    ) {
+        Column(Modifier.padding(DASHBOARD_PADDING)) {
+            Text("Микромоторика", style = MaterialTheme.typography.headlineSmall)
+            Spacer(Modifier.height(DASHBOARD_PADDING))
+            RadarChart(
+                "Акселерометр",
+                state.samples,
+                SensorType.ACCELEROMETER,
+                COLOR_ACCELEROMETER
             )
-        ) {
-            Column(Modifier.padding(8.dp)) {
-                Text("Матрицы переходов", style = MaterialTheme.typography.headlineSmall)
-                Spacer(modifier = Modifier.height(8.dp))
-
-                TransitionMatrixChart(
-                    title = "Русские буквы",
-                    matrix = state.ruTransitionMatrix
-                )
-                Spacer(Modifier.height(8.dp))
-                TransitionMatrixChart(
-                    title = "Английские буквы",
-                    matrix = state.enTransitionMatrix
-                )
-
-                if (state.ruTransitionMatrix.isEmpty() && state.enTransitionMatrix.isEmpty()) {
-                    Text(
-                        "Недостаточно данных для построения матриц",
-                        color = Color.Gray,
-                        fontSize = 14.sp
-                    )
-                }
-            }
-        }
-
-        Card(
-            elevation = CardDefaults.cardElevation(4.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primary
+            Spacer(Modifier.height(DASHBOARD_PADDING))
+            RadarChart(
+                "Гироскоп",
+                state.samples,
+                SensorType.GYROSCOPE,
+                COLOR_GYROSCOPE
             )
-        ) {
-            Column(Modifier.padding(8.dp)) {
-                Text("Микромоторика", style = MaterialTheme.typography.headlineSmall)
-                Spacer(Modifier.height(8.dp))
-                RadarChart(
-                    "Акселерометр",
-                    state.samples,
-                    SensorType.ACCELEROMETER,
-                    Color(0xFFF44336)
-                )
-                Spacer(Modifier.height(8.dp))
-                RadarChart(
-                    "Гироскоп",
-                    state.samples,
-                    SensorType.GYROSCOPE,
-                    Color(0xFF4CAF50)
-                )
-                Spacer(Modifier.height(8.dp))
-                RadarChart(
-                    "Вектор поворота",
-                    state.samples,
-                    SensorType.ROTATION_VECTOR,
-                    Color(0xFF2196F3)
-                )
-            }
+            Spacer(Modifier.height(DASHBOARD_PADDING))
+            RadarChart(
+                "Вектор поворота",
+                state.samples,
+                SensorType.ROTATION_VECTOR,
+                COLOR_ROTATION
+            )
         }
     }
 }

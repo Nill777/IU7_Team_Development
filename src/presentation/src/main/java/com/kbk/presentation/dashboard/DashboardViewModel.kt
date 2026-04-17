@@ -36,6 +36,10 @@ class DashboardViewModel(
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
+    private companion object {
+        const val MAX_TRANSITION_TIME_MS = 2000L
+    }
+
     init {
         biometricService.getCollectedSamples()
             .onEach { data ->
@@ -55,7 +59,9 @@ class DashboardViewModel(
                     val flightTime = to.touchData.flightTime
 
                     // игнорируем переходы дольше 2000 мс
-                    if (to.motionData.timestamp - from.motionData.timestamp < 2000L && flightTime < 2000L) {
+                    if (to.motionData.timestamp - from.motionData.timestamp < MAX_TRANSITION_TIME_MS &&
+                        flightTime < MAX_TRANSITION_TIME_MS
+                    ) {
                         val fromKey = from.touchData.key.lowercase()
                         val toKey = to.touchData.key.lowercase()
 

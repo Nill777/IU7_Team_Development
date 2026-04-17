@@ -124,38 +124,58 @@ private fun CustomAnimatedBottomBar(
                     .background(color = sliderColor, shape = RoundedCornerShape(16.dp))
             )
             // кнопки поверх slider
-            Row(modifier = Modifier.fillMaxSize()) {
-                tabs.forEachIndexed { index, screen ->
-                    val isSelected = index == selectedIndex
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = tabNames[index],
-                            color = if (isSelected) textColorSelected else textColorUnselected,
-                            fontSize = fontSize,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                        )
-                    }
-                }
-            }
+            BottomBarTabs(
+                tabs = tabs,
+                tabNames = tabNames,
+                selectedIndex = selectedIndex,
+                navController = navController,
+                textColorSelected = textColorSelected,
+                textColorUnselected = textColorUnselected,
+                fontSize = fontSize
+            )
         }
     }
 }
 
+@Composable
+private fun BottomBarTabs(
+    tabs: List<Screen>,
+    tabNames: List<String>,
+    selectedIndex: Int,
+    navController: NavHostController,
+    textColorSelected: Color,
+    textColorUnselected: Color,
+    fontSize: TextUnit
+) {
+    Row(modifier = Modifier.fillMaxSize()) {
+        tabs.forEachIndexed { index, screen ->
+            val isSelected = index == selectedIndex
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) {
+                        navController.navigate(screen.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = tabNames[index],
+                    color = if (isSelected) textColorSelected else textColorUnselected,
+                    fontSize = fontSize,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                )
+            }
+        }
+    }
+}
