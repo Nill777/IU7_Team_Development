@@ -21,6 +21,14 @@ import com.kbk.presentation.keyboard.KeyboardConstants.KEYBOARD_HEIGHT
 import com.kbk.presentation.keyboard.KeyboardConstants.KEYBOARD_PADDING_HORIZONTAL
 import com.kbk.presentation.keyboard.KeyboardConstants.KEYBOARD_PADDING_VERTICAL
 
+data class KeyboardRowParams(
+    val keys: List<String>,
+    val horizontalPadding: Float = 0f,
+    val isShifted: Boolean = false,
+    val viewModel: KeyboardViewModel? = null,
+    val isBackdrop: Boolean = false
+)
+
 @Composable
 fun KeyboardScreen(
     viewModel: KeyboardViewModel,
@@ -109,63 +117,66 @@ fun ColumnScope.LettersLayout(
         if (isRu) KeyboardConstants.KEY_WEIGHT_NORMAL else KeyboardConstants.KEY_WEIGHT_LARGE
 
     KeyboardRow(
-        KeyboardLayouts.NUM_ROW_1,
-        viewModel = viewModel,
-        isBackdrop = isBackdrop,
+        KeyboardRowParams(
+            KeyboardLayouts.NUM_ROW_1,
+            viewModel = viewModel,
+            isBackdrop = isBackdrop
+        ),
         onAction = onAction
     )
     KeyboardRow(
-        row1,
-        isShifted = isShifted,
-        viewModel = viewModel,
-        isBackdrop = isBackdrop,
+        KeyboardRowParams(
+            row1,
+            isShifted = isShifted,
+            viewModel = viewModel,
+            isBackdrop = isBackdrop
+        ),
         onAction = onAction
     )
     KeyboardRow(
-        row2,
-        horizontalPadding = padding,
-        isShifted = isShifted,
-        viewModel = viewModel,
-        isBackdrop = isBackdrop,
+        KeyboardRowParams(row2, padding, isShifted, viewModel, isBackdrop),
         onAction = onAction
     )
+    LettersThirdRow(row3, isShifted, viewModel, isBackdrop, sideWeight, onAction)
+    BottomRow(language, viewModel = viewModel, isBackdrop = isBackdrop, onAction = onAction)
+}
 
+@Composable
+private fun ColumnScope.LettersThirdRow(
+    row3: List<String>,
+    isShifted: Boolean,
+    viewModel: KeyboardViewModel?,
+    isBackdrop: Boolean,
+    sideWeight: Float,
+    onAction: (KeyboardAction) -> Unit
+) {
     Row(
         modifier = Modifier
             .weight(1f)
             .fillMaxWidth()
     ) {
         KeyboardKey(
-            "⇧",
-            Modifier.weight(sideWeight),
-            type = KeyType.SHIFT,
-            viewModel = viewModel,
-            isBackdrop = isBackdrop
+            KeyboardKeyParams("⇧", KeyType.SHIFT, viewModel, isBackdrop),
+            Modifier.weight(sideWeight)
         ) {
             onAction(KeyboardAction.Shift)
         }
         row3.forEach { key ->
             val text = if (isShifted) key.uppercase() else key
             KeyboardKey(
-                text,
-                Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
-                viewModel = viewModel,
-                isBackdrop = isBackdrop
+                KeyboardKeyParams(text, KeyType.NORMAL, viewModel, isBackdrop),
+                Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
             ) {
                 onAction(KeyboardAction.CommitText(key))
             }
         }
         KeyboardKey(
-            "⌫",
-            Modifier.weight(sideWeight),
-            type = KeyType.DELETE,
-            viewModel = viewModel,
-            isBackdrop = isBackdrop
+            KeyboardKeyParams("⌫", KeyType.DELETE, viewModel, isBackdrop),
+            Modifier.weight(sideWeight)
         ) {
             onAction(KeyboardAction.Delete)
         }
     }
-    BottomRow(language, viewModel = viewModel, isBackdrop = isBackdrop, onAction = onAction)
 }
 
 @Composable
@@ -173,8 +184,14 @@ private fun ColumnScope.NumbersLayout(
     viewModel: KeyboardViewModel,
     onAction: (KeyboardAction) -> Unit
 ) {
-    KeyboardRow(KeyboardLayouts.NUM_ROW_1, viewModel = viewModel, onAction = onAction)
-    KeyboardRow(KeyboardLayouts.NUM_ROW_2, viewModel = viewModel, onAction = onAction)
+    KeyboardRow(
+        KeyboardRowParams(KeyboardLayouts.NUM_ROW_1, viewModel = viewModel),
+        onAction = onAction
+    )
+    KeyboardRow(
+        KeyboardRowParams(KeyboardLayouts.NUM_ROW_2, viewModel = viewModel),
+        onAction = onAction
+    )
 
     Row(
         modifier = Modifier
@@ -182,27 +199,22 @@ private fun ColumnScope.NumbersLayout(
             .fillMaxWidth()
     ) {
         KeyboardKey(
-            "{&=",
-            Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
-            type = KeyType.LAYOUT_CHANGE,
-            viewModel = viewModel
+            KeyboardKeyParams("{&=", KeyType.LAYOUT_CHANGE, viewModel),
+            Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
         ) {
             onAction(KeyboardAction.ChangeLayout(KeyboardLayoutType.SYMBOLS))
         }
         KeyboardLayouts.NUM_ROW_3.forEach { key ->
             KeyboardKey(
-                key,
-                Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
-                viewModel = viewModel
+                KeyboardKeyParams(key, KeyType.NORMAL, viewModel),
+                Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
             ) {
                 onAction(KeyboardAction.CommitText(key))
             }
         }
         KeyboardKey(
-            "⌫",
-            Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
-            type = KeyType.DELETE,
-            viewModel = viewModel
+            KeyboardKeyParams("⌫", KeyType.DELETE, viewModel),
+            Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
         ) {
             onAction(KeyboardAction.Delete)
         }
@@ -220,8 +232,14 @@ private fun ColumnScope.SymbolsLayout(
     viewModel: KeyboardViewModel,
     onAction: (KeyboardAction) -> Unit
 ) {
-    KeyboardRow(KeyboardLayouts.SYM_ROW_1, viewModel = viewModel, onAction = onAction)
-    KeyboardRow(KeyboardLayouts.SYM_ROW_2, viewModel = viewModel, onAction = onAction)
+    KeyboardRow(
+        KeyboardRowParams(KeyboardLayouts.SYM_ROW_1, viewModel = viewModel),
+        onAction = onAction
+    )
+    KeyboardRow(
+        KeyboardRowParams(KeyboardLayouts.SYM_ROW_2, viewModel = viewModel),
+        onAction = onAction
+    )
 
     Row(
         modifier = Modifier
@@ -229,27 +247,22 @@ private fun ColumnScope.SymbolsLayout(
             .fillMaxWidth()
     ) {
         KeyboardKey(
-            "123",
-            Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
-            type = KeyType.LAYOUT_CHANGE,
-            viewModel = viewModel
+            KeyboardKeyParams("123", KeyType.LAYOUT_CHANGE, viewModel),
+            Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
         ) {
             onAction(KeyboardAction.ChangeLayout(KeyboardLayoutType.NUMBERS))
         }
         KeyboardLayouts.SYM_ROW_3.forEach { key ->
             KeyboardKey(
-                key,
-                Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
-                viewModel = viewModel
+                KeyboardKeyParams(key, KeyType.NORMAL, viewModel),
+                Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
             ) {
                 onAction(KeyboardAction.CommitText(key))
             }
         }
         KeyboardKey(
-            "⌫",
-            Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
-            type = KeyType.DELETE,
-            viewModel = viewModel
+            KeyboardKeyParams("⌫", KeyType.DELETE, viewModel),
+            Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
         ) {
             onAction(KeyboardAction.Delete)
         }
@@ -264,11 +277,7 @@ private fun ColumnScope.SymbolsLayout(
 
 @Composable
 private fun ColumnScope.KeyboardRow(
-    keys: List<String>,
-    horizontalPadding: Float = 0f,
-    isShifted: Boolean = false,
-    viewModel: KeyboardViewModel? = null,
-    isBackdrop: Boolean = false,
+    params: KeyboardRowParams,
     onAction: (KeyboardAction) -> Unit
 ) {
     Row(
@@ -276,20 +285,23 @@ private fun ColumnScope.KeyboardRow(
             .fillMaxWidth()
             .weight(1f)
     ) {
-        if (horizontalPadding > 0f) Spacer(modifier = Modifier.weight(horizontalPadding))
-        keys.forEach { key ->
-            val text = if (isShifted) key.uppercase() else key
+        if (params.horizontalPadding > 0f) Spacer(modifier = Modifier.weight(params.horizontalPadding))
+        params.keys.forEach { key ->
+            val text = if (params.isShifted) key.uppercase() else key
             KeyboardKey(
-                text = text,
-                modifier = Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
-                viewModel = viewModel,
-                isBackdrop = isBackdrop
+                params = KeyboardKeyParams(
+                    text,
+                    KeyType.NORMAL,
+                    params.viewModel,
+                    params.isBackdrop
+                ),
+                modifier = Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
             ) {
                 onAction(KeyboardAction.CommitText(key))
             }
         }
-        if (horizontalPadding > 0f)
-            Spacer(modifier = Modifier.weight(horizontalPadding))
+        if (params.horizontalPadding > 0f)
+            Spacer(modifier = Modifier.weight(params.horizontalPadding))
     }
 }
 
@@ -314,11 +326,8 @@ private fun ColumnScope.BottomRow(
                 KeyboardLayoutType.LETTERS
 
         KeyboardKey(
-            switchText,
-            Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
-            type = KeyType.LAYOUT_CHANGE,
-            viewModel = viewModel,
-            isBackdrop = isBackdrop
+            KeyboardKeyParams(switchText, KeyType.LAYOUT_CHANGE, viewModel, isBackdrop),
+            Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
         ) {
             onAction(KeyboardAction.ChangeLayout(nextLayout))
         }
@@ -345,42 +354,27 @@ private fun RowScope.BottomRowLetters(
     onAction: (KeyboardAction) -> Unit
 ) {
     KeyboardKey(
-        ",",
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
-        type = KeyType.PUNCTUATION_MARKS,
-        viewModel = viewModel,
-        isBackdrop = isBackdrop
+        KeyboardKeyParams(",", KeyType.PUNCTUATION_MARKS, viewModel, isBackdrop),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
     ) { onAction(KeyboardAction.CommitText(",")) }
 
     val langText = if (language == KeyboardLanguage.RU) "RU" else "EN"
     KeyboardKey(
-        langText,
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
-        type = KeyType.LANGUAGE_CHANGE,
-        viewModel = viewModel,
-        isBackdrop = isBackdrop
+        KeyboardKeyParams(langText, KeyType.LANGUAGE_CHANGE, viewModel, isBackdrop),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
     ) { onAction(KeyboardAction.SwitchLanguage) }
 
     KeyboardKey(
-        "",
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_SPACE),
-        type = KeyType.SPACE,
-        viewModel = viewModel,
-        isBackdrop = isBackdrop
+        KeyboardKeyParams("", KeyType.SPACE, viewModel, isBackdrop),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_SPACE)
     ) { onAction(KeyboardAction.Space) }
     KeyboardKey(
-        ".",
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
-        type = KeyType.PUNCTUATION_MARKS,
-        viewModel = viewModel,
-        isBackdrop = isBackdrop
+        KeyboardKeyParams(".", KeyType.PUNCTUATION_MARKS, viewModel, isBackdrop),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
     ) { onAction(KeyboardAction.CommitText(".")) }
     KeyboardKey(
-        "↵",
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_LARGE),
-        type = KeyType.ENTER,
-        viewModel = viewModel,
-        isBackdrop = isBackdrop
+        KeyboardKeyParams("↵", KeyType.ENTER, viewModel, isBackdrop),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_LARGE)
     ) { onAction(KeyboardAction.Enter) }
 }
 
@@ -390,28 +384,20 @@ private fun RowScope.BottomRowNumbers(
     onAction: (KeyboardAction) -> Unit
 ) {
     KeyboardKey(
-        ",",
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
-        type = KeyType.PUNCTUATION_MARKS,
-        viewModel = viewModel
+        KeyboardKeyParams(",", KeyType.PUNCTUATION_MARKS, viewModel),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
     ) { onAction(KeyboardAction.CommitText(",")) }
     KeyboardKey(
-        "",
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_SPACE),
-        type = KeyType.SPACE,
-        viewModel = viewModel
+        KeyboardKeyParams("", KeyType.SPACE, viewModel),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_SPACE)
     ) { onAction(KeyboardAction.Space) }
     KeyboardKey(
-        ".",
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
-        type = KeyType.PUNCTUATION_MARKS,
-        viewModel = viewModel
+        KeyboardKeyParams(".", KeyType.PUNCTUATION_MARKS, viewModel),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
     ) { onAction(KeyboardAction.CommitText(".")) }
     KeyboardKey(
-        "↵",
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_LARGE),
-        type = KeyType.ENTER,
-        viewModel = viewModel
+        KeyboardKeyParams("↵", KeyType.ENTER, viewModel),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_LARGE)
     ) { onAction(KeyboardAction.Enter) }
 }
 
@@ -421,16 +407,13 @@ private fun RowScope.BottomRowSymbols(
     onAction: (KeyboardAction) -> Unit
 ) {
     KeyboardKey(
-        "",
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_SYMBOLS_SPACE),
-        type = KeyType.SPACE,
-        viewModel = viewModel
+        KeyboardKeyParams("", KeyType.SPACE, viewModel),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_SYMBOLS_SPACE)
     ) { onAction(KeyboardAction.Space) }
     KeyboardLayouts.SYM_ROW_4.forEach { key ->
         KeyboardKey(
-            key,
-            Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
-            viewModel = viewModel
+            KeyboardKeyParams(key, KeyType.NORMAL, viewModel),
+            Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
         ) {
             onAction(
                 KeyboardAction.CommitText(key)
@@ -438,9 +421,7 @@ private fun RowScope.BottomRowSymbols(
         }
     }
     KeyboardKey(
-        "↵",
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
-        type = KeyType.ENTER,
-        viewModel = viewModel
+        KeyboardKeyParams("↵", KeyType.ENTER, viewModel),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
     ) { onAction(KeyboardAction.Enter) }
 }
