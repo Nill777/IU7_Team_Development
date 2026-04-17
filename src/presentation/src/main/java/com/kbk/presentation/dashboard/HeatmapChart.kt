@@ -76,8 +76,9 @@ fun KeyboardHeatmap(
     val origHeightPx =
         with(LocalDensity.current) { KEYBOARD_HEIGHT.toPx() - DOUBLE_KEYBOARD_PADDING_VERTICAL.toPx() }
 
-    // Масштабируем пиксели (считаем карту в 4 раза меньше, а Canvas ее растянет с красивым блюром)
-    val scaleFactor = 0.25f
+    // масштабируем пиксели
+    // (считаем карту в 10 раза меньшим разрешением, а Canvas ее растянет)
+    val scaleFactor = 0.10f
 
     BoxWithConstraints(
         modifier = Modifier
@@ -143,9 +144,9 @@ fun KeyboardHeatmap(
     }
 
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text("${"%.1f".format(minVal)} ${metricType.unit}", fontSize = 16.sp)
-        Text("%.1f".format((minVal + maxVal) / 2), fontSize = 16.sp)
-        Text("${"%.1f".format(maxVal)} ${metricType.unit}", fontSize = 16.sp)
+        Text("%.1f".format(minVal), fontSize = 14.sp)
+        Text("%.1f".format((minVal + maxVal) / 2), fontSize = 14.sp)
+        Text("${"%.1f".format(maxVal)} ${metricType.unit}", fontSize = 14.sp)
     }
 }
 
