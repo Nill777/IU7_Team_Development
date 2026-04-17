@@ -32,6 +32,17 @@ private const val MATRIX_LABEL_OFFSET = 8f
 private const val MATRIX_HUE_MULTIPLIER = 240f
 private const val MATRIX_CELL_STROKE = 1f
 private const val MATRIX_VAL_TEXT_OFFSET = 2f
+private const val TEXT_SIZE_LABEL = 10
+private const val TEXT_SIZE_VALUE = 6
+private const val TEXT_SIZE_LEGEND = 14
+private const val GRADIENT_HEIGHT_VAL = 16
+private const val CHART_SPACING_VAL = 8
+
+data class MatrixDrawConfig(
+    val pad: Float,
+    val cellSize: Float,
+    val maxVal: Float
+)
 
 @Composable
 fun TransitionMatrixChart(title: String, matrix: Map<Pair<String, String>, Float>) {
@@ -44,11 +55,10 @@ fun TransitionMatrixChart(title: String, matrix: Map<Pair<String, String>, Float
     val textMeasurer = rememberTextMeasurer()
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = Modifier.fillMaxWidth()
     ) {
         Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(CHART_SPACING_VAL.dp))
 
         Canvas(
             modifier = Modifier
@@ -59,43 +69,48 @@ fun TransitionMatrixChart(title: String, matrix: Map<Pair<String, String>, Float
             val pad = MATRIX_PAD
             val plotSize = size.width - pad
             val cellSize = plotSize / sortedKeys.size
+            val config = MatrixDrawConfig(pad, cellSize, maxVal)
 
-            drawMatrixLabels(sortedKeys, pad, cellSize, textMeasurer)
-            drawMatrixCells(sortedKeys, matrix, pad, cellSize, maxVal, textMeasurer)
+            drawMatrixLabels(sortedKeys, config, textMeasurer)
+            drawMatrixCells(sortedKeys, matrix, config, textMeasurer)
         }
 
-        Spacer(Modifier.height(16.dp))
+        TransitionMatrixLegend(maxVal)
+    }
+}
 
-        Canvas(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(16.dp)
-        ) {
-            val brush = Brush.horizontalGradient(
-                colors = listOf(
-                    Color.Blue,
-                    Color.Green,
-                    Color.Red
-                )
+@Composable
+private fun TransitionMatrixLegend(maxVal: Float) {
+    Spacer(Modifier.height(GRADIENT_HEIGHT_VAL.dp))
+
+    Canvas(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(GRADIENT_HEIGHT_VAL.dp)
+    ) {
+        val brush = Brush.horizontalGradient(
+            colors = listOf(
+                Color.Blue,
+                Color.Green,
+                Color.Red
             )
-            drawRect(brush = brush)
-        }
+        )
+        drawRect(brush = brush)
+    }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text("0", fontSize = 14.sp)
-            Text("${(maxVal / 2).toInt()}", fontSize = 14.sp)
-            Text("${maxVal.toInt()} мс", fontSize = 14.sp)
-        }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text("0", fontSize = TEXT_SIZE_LEGEND.sp)
+        Text("${(maxVal / 2).toInt()}", fontSize = TEXT_SIZE_LEGEND.sp)
+        Text("${maxVal.toInt()} мс", fontSize = TEXT_SIZE_LEGEND.sp)
     }
 }
 
 private fun DrawScope.drawMatrixLabels(
     sortedKeys: List<String>,
-    pad: Float,
-    cellSize: Float,
+    config: MatrixDrawConfig,
     textMeasurer: TextMeasurer
 ) {
     // 1. Подписи строк и столбцов
@@ -105,7 +120,7 @@ private fun DrawScope.drawMatrixLabels(
             style = TextStyle(
                 color = Color.Black,
                 fontWeight = FontWeight.Bold,
-                fontSize = 10.sp
+                fontSize = TEXT_SIZE_LABEL.sp
             )
         )
 
@@ -113,8 +128,8 @@ private fun DrawScope.drawMatrixLabels(
         drawText(
             textLayoutResult = textLayout,
             topLeft = Offset(
-                x = pad + cellSize * i + (cellSize - textLayout.size.width) / 2,
-                y = pad - textLayout.size.height - MATRIX_LABEL_OFFSET
+                x = config.pad + config.cellSize * i + (config.cellSize - textLayout.size.width) / 2,
+                y = config.pad - textLayout.size.height - MATRIX_LABEL_OFFSET
             )
         )
 
@@ -122,8 +137,8 @@ private fun DrawScope.drawMatrixLabels(
         drawText(
             textLayoutResult = textLayout,
             topLeft = Offset(
-                x = pad - textLayout.size.width - MATRIX_LABEL_OFFSET,
-                y = pad + cellSize * i + (cellSize - textLayout.size.height) / 2
+                x = config.pad - textLayout.size.width - MATRIX_LABEL_OFFSET,
+                y = config.pad + config.cellSize * i + (config.cellSize - textLayout.size.height) / 2
             )
         )
     }
@@ -132,9 +147,7 @@ private fun DrawScope.drawMatrixLabels(
 private fun DrawScope.drawMatrixCells(
     sortedKeys: List<String>,
     matrix: Map<Pair<String, String>, Float>,
-    pad: Float,
-    cellSize: Float,
-    maxVal: Float,
+    config: MatrixDrawConfig,
     textMeasurer: TextMeasurer
 ) {
     // отрисовка
@@ -143,22 +156,19 @@ private fun DrawScope.drawMatrixCells(
             val value = matrix[from to to] ?: 0f
 
             val cellColor = if (value > 0f) {
-                val fraction = (value / maxVal).coerceIn(0f, 1f)
+                val fraction = (value / config.maxVal).coerceIn(0f, 1f)
                 val h = (1.0f - fraction) * MATRIX_HUE_MULTIPLIER
                 Color(android.graphics.Color.HSVToColor(floatArrayOf(h, 1f, 1f)))
             } else {
                 Color.White
             }
 
-            val rectTopLeft = Offset(pad + cellSize * j, pad + cellSize * i)
-            val rectSize = Size(cellSize, cellSize)
+            val rectTopLeft =
+                Offset(config.pad + config.cellSize * j, config.pad + config.cellSize * i)
+            val rectSize = Size(config.cellSize, config.cellSize)
 
             // ячейка
-            drawRect(
-                color = cellColor,
-                topLeft = rectTopLeft,
-                size = rectSize
-            )
+            drawRect(color = cellColor, topLeft = rectTopLeft, size = rectSize)
 
             // граница
             drawRect(
@@ -171,14 +181,14 @@ private fun DrawScope.drawMatrixCells(
             if (value > 0f) {
                 val valText = textMeasurer.measure(
                     text = value.toInt().toString(),
-                    style = TextStyle(fontSize = 6.sp, color = Color.Black)
+                    style = TextStyle(fontSize = TEXT_SIZE_VALUE.sp, color = Color.Black)
                 )
-                if (valText.size.width < cellSize - MATRIX_VAL_TEXT_OFFSET) {
+                if (valText.size.width < config.cellSize - MATRIX_VAL_TEXT_OFFSET) {
                     drawText(
                         textLayoutResult = valText,
                         topLeft = Offset(
-                            x = rectTopLeft.x + (cellSize - valText.size.width) / 2,
-                            y = rectTopLeft.y + (cellSize - valText.size.height) / 2
+                            x = rectTopLeft.x + (config.cellSize - valText.size.width) / 2,
+                            y = rectTopLeft.y + (config.cellSize - valText.size.height) / 2
                         )
                     )
                 }
