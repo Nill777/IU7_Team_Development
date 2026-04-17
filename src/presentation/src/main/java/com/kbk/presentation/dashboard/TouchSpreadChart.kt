@@ -33,8 +33,18 @@ private const val TOUCH_SPREAD_CIRCLE_RADIUS = 5f
 private const val TOUCH_SPREAD_Y_LABEL_DIVISOR_X = 1.2f
 private const val TOUCH_SPREAD_Y_LABEL_DIVISOR_Y = 10f
 private const val TOUCH_SPREAD_X_LABEL_DIVISOR_Y = 0.85f
-private const val TOUCH_SPREAD_BG_COLOR = 0xFFFAFAFA
-private const val TOUCH_SPREAD_LINE_COLOR = 0xFFE0E0E0
+private const val TOUCH_SPREAD_BG_COLOR_VAL = 0xFFFAFAFA
+private const val TOUCH_SPREAD_LINE_COLOR_VAL = 0xFFE0E0E0L
+private const val TOUCH_SPREAD_ALPHA = 0.7f
+private const val CHART_HEIGHT_VAL = 220
+private const val CHART_SPACING_VAL = 8
+
+data class TouchSpreadDrawConfig(
+    val maxX: Float,
+    val maxY: Float,
+    val plotW: Float,
+    val plotH: Float
+)
 
 @Composable
 fun TouchSpreadChart(
@@ -42,7 +52,7 @@ fun TouchSpreadChart(
     samples: List<BiometricSample>,
     targetKey: String
 ) {
-    val secondary = MaterialTheme.colorScheme.secondary.copy(alpha = 0.7f)
+    val secondary = MaterialTheme.colorScheme.secondary.copy(alpha = TOUCH_SPREAD_ALPHA)
     val values = samples.filter { it.touchData.key == targetKey }
     if (values.isEmpty()) return
 
@@ -52,42 +62,39 @@ fun TouchSpreadChart(
     val maxY = values.maxOfOrNull { it.touchData.touchY }?.coerceAtLeast(1f) ?: 1f
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = Modifier.fillMaxWidth()
     ) {
         Text(text = title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(CHART_SPACING_VAL.dp))
 
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(220.dp)
-                .background(Color(TOUCH_SPREAD_BG_COLOR))
+                .height(CHART_HEIGHT_VAL.dp)
+                .background(Color(TOUCH_SPREAD_BG_COLOR_VAL))
         ) {
             val plotW = size.width - TOUCH_SPREAD_PAD_LEFT - TOUCH_SPREAD_PAD_RIGHT
             val plotH = size.height - TOUCH_SPREAD_PAD_BOTTOM - TOUCH_SPREAD_PAD_TOP
+            val config = TouchSpreadDrawConfig(maxX, maxY, plotW, plotH)
 
-            drawTouchSpreadGrid(maxX, maxY, plotW, plotH, textMeasurer)
+            drawTouchSpreadGrid(config, textMeasurer)
             drawTouchSpreadAxes(textMeasurer)
-            drawTouchSpreadPoints(values, maxX, maxY, plotW, plotH, secondary)
+            drawTouchSpreadPoints(values, secondary, config)
         }
     }
 }
 
 private fun DrawScope.drawTouchSpreadGrid(
-    maxX: Float,
-    maxY: Float,
-    plotW: Float,
-    plotH: Float,
+    config: TouchSpreadDrawConfig,
     textMeasurer: TextMeasurer
 ) {
     // сетка
     for (i in 0..TOUCH_SPREAD_GRID_STEPS) {
         val yPos =
-            size.height - TOUCH_SPREAD_PAD_BOTTOM - i / TOUCH_SPREAD_GRID_STEPS.toFloat() * plotH
-        val yVal = maxY * i / TOUCH_SPREAD_GRID_STEPS
+            size.height - TOUCH_SPREAD_PAD_BOTTOM - i / TOUCH_SPREAD_GRID_STEPS.toFloat() * config.plotH
+        val yVal = config.maxY * i / TOUCH_SPREAD_GRID_STEPS
         drawLine(
-            Color(TOUCH_SPREAD_LINE_COLOR),
+            Color(TOUCH_SPREAD_LINE_COLOR_VAL),
             Offset(TOUCH_SPREAD_PAD_LEFT, yPos),
             Offset(size.width - TOUCH_SPREAD_PAD_RIGHT, yPos)
         )
@@ -103,10 +110,10 @@ private fun DrawScope.drawTouchSpreadGrid(
             )
         )
 
-        val xPos = TOUCH_SPREAD_PAD_LEFT + i / TOUCH_SPREAD_GRID_STEPS.toFloat() * plotW
-        val xVal = maxX * i / TOUCH_SPREAD_GRID_STEPS
+        val xPos = TOUCH_SPREAD_PAD_LEFT + i / TOUCH_SPREAD_GRID_STEPS.toFloat() * config.plotW
+        val xVal = config.maxX * i / TOUCH_SPREAD_GRID_STEPS
         drawLine(
-            Color(TOUCH_SPREAD_LINE_COLOR),
+            Color(TOUCH_SPREAD_LINE_COLOR_VAL),
             Offset(xPos, TOUCH_SPREAD_PAD_TOP),
             Offset(xPos, size.height - TOUCH_SPREAD_PAD_BOTTOM)
         )
@@ -124,9 +131,7 @@ private fun DrawScope.drawTouchSpreadGrid(
     }
 }
 
-private fun DrawScope.drawTouchSpreadAxes(
-    textMeasurer: TextMeasurer
-) {
+private fun DrawScope.drawTouchSpreadAxes(textMeasurer: TextMeasurer) {
     // оси
     drawLine(
         Color.Black,
@@ -143,19 +148,14 @@ private fun DrawScope.drawTouchSpreadAxes(
 
     // подписи к осям
     drawText(
-        textMeasurer.measure(
-            "y",
-            TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold)
-        ), topLeft = Offset(
+        textMeasurer.measure("y", TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold)),
+        topLeft = Offset(
             TOUCH_SPREAD_PAD_LEFT / TOUCH_SPREAD_Y_LABEL_DIVISOR_X,
             TOUCH_SPREAD_PAD_TOP / TOUCH_SPREAD_Y_LABEL_DIVISOR_Y
         )
     )
     drawText(
-        textMeasurer.measure(
-            "x",
-            TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold)
-        ),
+        textMeasurer.measure("x", TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold)),
         topLeft = Offset(
             size.width - TOUCH_SPREAD_PAD_LEFT,
             size.height - TOUCH_SPREAD_PAD_TOP / TOUCH_SPREAD_X_LABEL_DIVISOR_Y
@@ -165,15 +165,13 @@ private fun DrawScope.drawTouchSpreadAxes(
 
 private fun DrawScope.drawTouchSpreadPoints(
     values: List<BiometricSample>,
-    maxX: Float,
-    maxY: Float,
-    plotW: Float,
-    plotH: Float,
-    secondary: Color
+    secondary: Color,
+    config: TouchSpreadDrawConfig
 ) {
     values.forEach { sample ->
-        val x = TOUCH_SPREAD_PAD_LEFT + sample.touchData.touchX / maxX * plotW
-        val y = size.height - TOUCH_SPREAD_PAD_BOTTOM - sample.touchData.touchY / maxY * plotH
+        val x = TOUCH_SPREAD_PAD_LEFT + sample.touchData.touchX / config.maxX * config.plotW
+        val y =
+            size.height - TOUCH_SPREAD_PAD_BOTTOM - sample.touchData.touchY / config.maxY * config.plotH
         drawCircle(secondary, radius = TOUCH_SPREAD_CIRCLE_RADIUS, center = Offset(x, y))
     }
 }

@@ -22,6 +22,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -29,20 +30,26 @@ import com.kbk.presentation.keyboard.KeyboardConstants.KEYBOARD_PADDING_HORIZONT
 import com.kbk.presentation.keyboard.KeyboardConstants.KEYBOARD_PADDING_VERTICAL
 import com.kbk.presentation.keyboard.KeyboardConstants.ROUNDED_CORNER_SHAPE
 
+private const val FONT_SIZE_NORMAL = 20
+private const val FONT_SIZE_LARGE = 35
+private const val FONT_SIZE_SMALL = 18
+private const val FONT_SIZE_MEDIUM = 22
+private const val BORDER_WIDTH_BACKDROP = 1
+
 enum class KeyType {
     NORMAL, SHIFT, ENTER, SPACE, DELETE, LAYOUT_CHANGE, LANGUAGE_CHANGE, PUNCTUATION_MARKS
 }
 
 private val KeyType.fontSize: TextUnit
     get() = when (this) {
-        KeyType.NORMAL -> 20.sp
-        KeyType.SHIFT -> 35.sp
-        KeyType.ENTER -> 35.sp
-        KeyType.SPACE -> 35.sp
-        KeyType.LAYOUT_CHANGE -> 18.sp
-        KeyType.LANGUAGE_CHANGE -> 20.sp
-        KeyType.DELETE -> 22.sp
-        KeyType.PUNCTUATION_MARKS -> 20.sp
+        KeyType.NORMAL -> FONT_SIZE_NORMAL.sp
+        KeyType.SHIFT -> FONT_SIZE_LARGE.sp
+        KeyType.ENTER -> FONT_SIZE_LARGE.sp
+        KeyType.SPACE -> FONT_SIZE_LARGE.sp
+        KeyType.LAYOUT_CHANGE -> FONT_SIZE_SMALL.sp
+        KeyType.LANGUAGE_CHANGE -> FONT_SIZE_NORMAL.sp
+        KeyType.DELETE -> FONT_SIZE_MEDIUM.sp
+        KeyType.PUNCTUATION_MARKS -> FONT_SIZE_NORMAL.sp
     }
 
 data class KeyboardKeyParams(
@@ -50,6 +57,12 @@ data class KeyboardKeyParams(
     val type: KeyType = KeyType.NORMAL,
     val viewModel: KeyboardViewModel? = null,
     val isBackdrop: Boolean = false
+)
+
+data class KeyboardKeyStyles(
+    val bgColor: Color,
+    val borderColor: Color,
+    val borderWidth: Dp
 )
 
 @Composable
@@ -65,51 +78,50 @@ fun KeyboardKey(
         MaterialTheme.colorScheme.surface
     }
     val borderColor = if (params.isBackdrop) Color.Black else Color.Transparent
-    val borderWidth = if (params.isBackdrop) 1.dp else 0.dp
+    val borderWidth = if (params.isBackdrop) BORDER_WIDTH_BACKDROP.dp else 0.dp
 
     Box(
         modifier = modifier
             .fillMaxSize()
-            .then(
-                if (!params.isBackdrop && params.viewModel != null) {
-                    Modifier
-                        .pointerInput(Unit) {
-                            awaitPointerEventScope {
-                                while (true) {
-                                    // pass = Initial перехват данных до onClick
-                                    val downEvent = awaitFirstDown(pass = PointerEventPass.Initial)
-                                    val upEvent =
-                                        waitForUpOrCancellation(pass = PointerEventPass.Initial)
-
-                                    if (upEvent != null) {
-                                        params.viewModel.onKeyEvent(
-                                            params.text,
-                                            downEvent,
-                                            upEvent
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        .clickable(
-                            interactionSource = interactionSource,
-                            indication = null,
-                            onClick = onClick
-                        )
-                } else {
-                    Modifier
-                }
-            ),
+            .applyKeyboardInteraction(params, interactionSource, onClick),
         contentAlignment = Alignment.Center
     ) {
         KeyboardKeyContent(
             text = params.text,
             type = params.type,
-            bgColor = bgColor,
-            borderColor = borderColor,
-            borderWidth = borderWidth,
+            styles = KeyboardKeyStyles(bgColor, borderColor, borderWidth),
             interactionSource = interactionSource
         )
+    }
+}
+
+private fun Modifier.applyKeyboardInteraction(
+    params: KeyboardKeyParams,
+    interactionSource: MutableInteractionSource,
+    onClick: () -> Unit
+): Modifier {
+    return if (!params.isBackdrop && params.viewModel != null) {
+        this
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        // pass = Initial перехват данных до onClick
+                        val downEvent = awaitFirstDown(pass = PointerEventPass.Initial)
+                        val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
+
+                        if (upEvent != null) {
+                            params.viewModel.onKeyEvent(params.text, downEvent, upEvent)
+                        }
+                    }
+                }
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null,
+                onClick = onClick
+            )
+    } else {
+        this
     }
 }
 
@@ -117,9 +129,7 @@ fun KeyboardKey(
 private fun KeyboardKeyContent(
     text: String,
     type: KeyType,
-    bgColor: Color,
-    borderColor: Color,
-    borderWidth: androidx.compose.ui.unit.Dp,
+    styles: KeyboardKeyStyles,
     interactionSource: MutableInteractionSource
 ) {
     Box(
@@ -130,8 +140,12 @@ private fun KeyboardKeyContent(
                 vertical = KEYBOARD_PADDING_VERTICAL
             )
             .clip(RoundedCornerShape(ROUNDED_CORNER_SHAPE))
-            .background(bgColor)
-            .border(borderWidth, borderColor, RoundedCornerShape(ROUNDED_CORNER_SHAPE))
+            .background(styles.bgColor)
+            .border(
+                styles.borderWidth,
+                styles.borderColor,
+                RoundedCornerShape(ROUNDED_CORNER_SHAPE)
+            )
             .indication(interactionSource, ripple()),
         contentAlignment = Alignment.Center
     ) {
