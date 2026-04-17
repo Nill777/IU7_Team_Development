@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -71,9 +70,7 @@ fun HistogramChart(
     val maxBinCount = bins.maxOrNull()?.coerceAtLeast(1) ?: 1
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 12.dp)
+        modifier = Modifier.fillMaxWidth()
     ) {
         Text(text = title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         Text(
@@ -203,8 +200,8 @@ fun HistogramChart(
                     "шт",
                     TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold)
                 ), topLeft = Offset(
-                    padLeft/1.7f,
-                    padTop/10f
+                    padLeft / 1.7f,
+                    padTop / 10f
                 )
             )
             val xLabel = textMeasurer.measure(
@@ -215,7 +212,7 @@ fun HistogramChart(
                 xLabel,
                 topLeft = Offset(
                     size.width - padLeft,
-                    size.height - padTop/0.85f
+                    size.height - padTop / 0.85f
                 )
             )
         }
