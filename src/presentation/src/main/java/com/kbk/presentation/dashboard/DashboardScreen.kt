@@ -29,11 +29,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -135,7 +133,7 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                     metricType = state.heatmapMetric
                 )
 
-                Spacer(Modifier.height(32.dp))
+                Spacer(Modifier.height(8.dp))
                 Text(
                     "Английская раскладка:",
                     style = MaterialTheme.typography.titleMedium
@@ -204,38 +202,37 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
                         }
                     }
                 }
-
-                Spacer(Modifier.height(16.dp))
-
+                Spacer(Modifier.height(8.dp))
                 HistogramChart(
                     title = "Время удержания", unit = "мс",
                     samples = state.samples, targetKey = state.selectedKey,
                     valueSelector = { it.touchData.dwellTime.toFloat() }
                 )
-
+                Spacer(Modifier.height(8.dp))
                 HistogramChart(
                     title = "Время полёта", unit = "мс",
                     samples = state.samples, targetKey = state.selectedKey,
                     valueSelector = { it.touchData.flightTime.toFloat() }
                 )
-
+                Spacer(Modifier.height(8.dp))
                 HistogramChart(
                     title = "Сила нажатия", unit = "у.е.",
                     samples = state.samples, targetKey = state.selectedKey,
                     valueSelector = { it.touchData.pressure }
                 )
-
+                Spacer(Modifier.height(8.dp))
                 HistogramChart(
                     title = "Смещение по X", unit = "px",
                     samples = state.samples, targetKey = state.selectedKey,
                     valueSelector = { it.touchData.touchX }
                 )
-
+                Spacer(Modifier.height(8.dp))
                 HistogramChart(
                     title = "Смещение по Y", unit = "px",
                     samples = state.samples, targetKey = state.selectedKey,
                     valueSelector = { it.touchData.touchY }
                 )
+                Spacer(Modifier.height(8.dp))
                 TouchSpreadChart(
                     title = "Кучность касаний",
                     samples = state.samples,
@@ -251,9 +248,26 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
             )
         ) {
             Column(Modifier.padding(8.dp)) {
-                Text("Матрица переходов", style = MaterialTheme.typography.headlineSmall)
+                Text("Матрицы переходов", style = MaterialTheme.typography.headlineSmall)
                 Spacer(modifier = Modifier.height(8.dp))
-                TransitionMatrixChart(matrix = state.transitionMatrix)
+
+                TransitionMatrixChart(
+                    title = "Русские буквы",
+                    matrix = state.ruTransitionMatrix
+                )
+                Spacer(Modifier.height(8.dp))
+                TransitionMatrixChart(
+                    title = "Английские буквы",
+                    matrix = state.enTransitionMatrix
+                )
+
+                if (state.ruTransitionMatrix.isEmpty() && state.enTransitionMatrix.isEmpty()) {
+                    Text(
+                        "Недостаточно данных для построения матриц",
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
             }
         }
 
