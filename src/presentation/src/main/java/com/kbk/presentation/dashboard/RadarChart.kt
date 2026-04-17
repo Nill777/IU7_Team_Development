@@ -38,6 +38,19 @@ private const val RADAR_STROKE_WIDTH = 2f
 private const val RADAR_POLYGON_STROKE_WIDTH = 3f
 private const val RADAR_TEXT_OFFSET_DP = 30f
 private const val RADAR_GRID_ALPHA = 0.5f
+private const val RADAR_SCALE_TEXT_OFFSET_PX = 5f
+private const val RADAR_MIN_MAX_COERCE = 0.01f
+private const val RADAR_DEFAULT_MAX_VAL = 1f
+private const val SQRT_3 = 3.0
+private const val PADDING_TEXT_DP = 60
+
+data class RadarConfig(
+    val center: Offset,
+    val radiusPx: Float,
+    val maxVal: Float,
+    val values: FloatArray,
+    val angles: List<Double>
+)
 
 @Composable
 fun RadarChart(
@@ -70,8 +83,7 @@ fun RadarChart(
     }
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
+        modifier = Modifier.fillMaxWidth()
     ) {
         Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold)
 
@@ -80,10 +92,10 @@ fun RadarChart(
             val density = LocalDensity.current
 
             // отступы со всех сторон
-            val textPaddingDp = 60.dp
+            val textPaddingDp = PADDING_TEXT_DP.dp
             val textPaddingPx = with(density) { textPaddingDp.toPx() }
             val usableWidthPx = canvasWidthPx - 2 * textPaddingPx
-            val radiusPx = (usableWidthPx / sqrt(3.0)).toFloat().coerceAtLeast(RADAR_MIN_RADIUS)
+            val radiusPx = (usableWidthPx / sqrt(SQRT_3)).toFloat().coerceAtLeast(RADAR_MIN_RADIUS)
             val usableHeightPx = RADAR_RADIUS_MULTIPLIER * radiusPx
 
             // итоговая высота холста
@@ -96,40 +108,33 @@ fun RadarChart(
                     .height(canvasHeightDp)
                     .background(Color.White)
             ) {
-                val center = Offset(
-                    x = size.width / 2f,
-                    y = textPaddingPx + radiusPx
-                )
-
-                val maxVal = values.maxOrNull()?.coerceAtLeast(0.01f) ?: 1f
+                val center = Offset(x = size.width / 2f, y = textPaddingPx + radiusPx)
+                val maxVal =
+                    values.maxOrNull()?.coerceAtLeast(RADAR_MIN_MAX_COERCE) ?: RADAR_DEFAULT_MAX_VAL
                 val angles = listOf(RADAR_ANGLE_Y, RADAR_ANGLE_X, RADAR_ANGLE_Z)
                 val labels = listOf("Y", "X", "Z")
 
-                drawRadarGrid(center, radiusPx, maxVal, angles, textMeasurer)
-                drawRadarAxes(center, radiusPx, maxVal, values, angles, labels, textMeasurer)
-                drawRadarPolygon(center, radiusPx, maxVal, values, angles, color)
+                val config = RadarConfig(center, radiusPx, maxVal, values, angles)
+
+                drawRadarGrid(config, textMeasurer)
+                drawRadarAxes(config, labels, textMeasurer)
+                drawRadarPolygon(config, color)
             }
         }
     }
 }
 
-private fun DrawScope.drawRadarGrid(
-    center: Offset,
-    radiusPx: Float,
-    maxVal: Float,
-    angles: List<Double>,
-    textMeasurer: TextMeasurer
-) {
+private fun DrawScope.drawRadarGrid(config: RadarConfig, textMeasurer: TextMeasurer) {
     // фоновая сетка и шкалы значений
     for (step in 1..RADAR_GRID_STEPS) {
-        val stepRadius = radiusPx * (step / RADAR_GRID_STEPS.toFloat())
-        val stepValue = maxVal * (step / RADAR_GRID_STEPS.toFloat())
+        val stepRadius = config.radiusPx * (step / RADAR_GRID_STEPS.toFloat())
+        val stepValue = config.maxVal * (step / RADAR_GRID_STEPS.toFloat())
 
-        val gridPoints = angles.map { angleDeg ->
+        val gridPoints = config.angles.map { angleDeg ->
             val rad = Math.toRadians(angleDeg)
             Offset(
-                x = center.x + stepRadius * cos(rad).toFloat(),
-                y = center.y + stepRadius * sin(rad).toFloat()
+                x = config.center.x + stepRadius * cos(rad).toFloat(),
+                y = config.center.y + stepRadius * sin(rad).toFloat()
             )
         }
         val gridPath = Path().apply {
@@ -151,35 +156,31 @@ private fun DrawScope.drawRadarGrid(
         drawText(
             textLayoutResult = scaleText,
             topLeft = Offset(
-                center.x + 5f,
-                center.y - stepRadius - scaleText.size.height / 2
+                config.center.x + RADAR_SCALE_TEXT_OFFSET_PX,
+                config.center.y - stepRadius - scaleText.size.height / 2
             )
         )
     }
 }
 
 private fun DrawScope.drawRadarAxes(
-    center: Offset,
-    radiusPx: Float,
-    maxVal: Float,
-    values: FloatArray,
-    angles: List<Double>,
+    config: RadarConfig,
     labels: List<String>,
     textMeasurer: TextMeasurer
 ) {
     // оси и значений метрики
-    angles.forEachIndexed { i, angleDeg ->
+    config.angles.forEachIndexed { i, angleDeg ->
         val rad = Math.toRadians(angleDeg)
 
-        val endX = center.x + radiusPx * cos(rad).toFloat()
-        val endY = center.y + radiusPx * sin(rad).toFloat()
-        drawLine(Color.Gray, center, Offset(endX, endY), strokeWidth = RADAR_STROKE_WIDTH)
+        val endX = config.center.x + config.radiusPx * cos(rad).toFloat()
+        val endY = config.center.y + config.radiusPx * sin(rad).toFloat()
+        drawLine(Color.Gray, config.center, Offset(endX, endY), strokeWidth = RADAR_STROKE_WIDTH)
 
         val textOffset = RADAR_TEXT_OFFSET_DP.dp.toPx()
-        val labelX = center.x + (radiusPx + textOffset) * cos(rad).toFloat()
-        val labelY = center.y + (radiusPx + textOffset) * sin(rad).toFloat()
+        val labelX = config.center.x + (config.radiusPx + textOffset) * cos(rad).toFloat()
+        val labelY = config.center.y + (config.radiusPx + textOffset) * sin(rad).toFloat()
 
-        val labelText = "${labels[i]}: ${"%.2f".format(values[i])}"
+        val labelText = "${labels[i]}: ${"%.2f".format(config.values[i])}"
         val textLayout = textMeasurer.measure(
             text = labelText,
             style = TextStyle(
@@ -199,22 +200,15 @@ private fun DrawScope.drawRadarAxes(
     }
 }
 
-private fun DrawScope.drawRadarPolygon(
-    center: Offset,
-    radiusPx: Float,
-    maxVal: Float,
-    values: FloatArray,
-    angles: List<Double>,
-    color: Color
-) {
+private fun DrawScope.drawRadarPolygon(config: RadarConfig, color: Color) {
     val points = mutableListOf<Offset>()
-    angles.forEachIndexed { i, angleDeg ->
+    config.angles.forEachIndexed { i, angleDeg ->
         val rad = Math.toRadians(angleDeg)
-        val vRad = radiusPx * (values[i] / maxVal)
+        val vRad = config.radiusPx * (config.values[i] / config.maxVal)
         points.add(
             Offset(
-                center.x + vRad * cos(rad).toFloat(),
-                center.y + vRad * sin(rad).toFloat()
+                config.center.x + vRad * cos(rad).toFloat(),
+                config.center.y + vRad * sin(rad).toFloat()
             )
         )
     }

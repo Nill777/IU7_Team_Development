@@ -47,6 +47,22 @@ import com.kbk.presentation.playground.PlaygroundViewModel
 import com.kbk.presentation.settings.SettingsScreen
 import com.kbk.presentation.settings.SettingsViewModel
 
+private const val BOTTOM_BAR_HEIGHT_VAL = 72
+private const val BOTTOM_BAR_PADDING_VAL = 8
+private const val BOTTOM_BAR_CORNER_RADIUS_VAL = 16
+private const val ANIMATION_DURATION = 200
+private const val TAB_WEIGHT = 1f
+private const val TAB_FONT_SIZE_VAL = 16
+
+data class BottomBarTabsParams(
+    val tabs: List<Screen>,
+    val tabNames: List<String>,
+    val selectedIndex: Int,
+    val textColorSelected: Color,
+    val textColorUnselected: Color,
+    val fontSize: TextUnit
+)
+
 @Composable
 fun KeystrokeApp(viewModelFactory: ViewModelProvider.Factory) {
     val navController = rememberNavController()
@@ -61,7 +77,7 @@ fun KeystrokeApp(viewModelFactory: ViewModelProvider.Factory) {
                 sliderColor = MaterialTheme.colorScheme.tertiary,
                 textColorSelected = MaterialTheme.colorScheme.onTertiary,
                 textColorUnselected = MaterialTheme.colorScheme.onSecondary,
-                fontSize = 16.sp
+                fontSize = TAB_FONT_SIZE_VAL.sp
             )
         }
     ) { innerPadding ->
@@ -92,7 +108,7 @@ private fun CustomAnimatedBottomBar(
     sliderColor: Color = MaterialTheme.colorScheme.secondary,
     textColorSelected: Color = MaterialTheme.colorScheme.onSecondary,
     textColorUnselected: Color = MaterialTheme.colorScheme.onPrimary,
-    fontSize: TextUnit = 16.sp
+    fontSize: TextUnit = TAB_FONT_SIZE_VAL.sp
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -102,16 +118,16 @@ private fun CustomAnimatedBottomBar(
 
     val animatedOffset by animateFloatAsState(
         targetValue = selectedIndex.toFloat(),
-        animationSpec = tween(durationMillis = 200), // длительность анимации мс
+        animationSpec = tween(durationMillis = ANIMATION_DURATION), // длительность анимации мс
         label = "slider_animation"
     )
 
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(72.dp)
+            .height(BOTTOM_BAR_HEIGHT_VAL.dp)
             .background(MaterialTheme.colorScheme.secondary)
-            .padding(8.dp)
+            .padding(BOTTOM_BAR_PADDING_VAL.dp)
     ) {
         BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val tabWidth = maxWidth / tabs.size
@@ -121,17 +137,22 @@ private fun CustomAnimatedBottomBar(
                     .width(tabWidth)
                     .fillMaxHeight()
                     .offset(x = tabWidth * animatedOffset)
-                    .background(color = sliderColor, shape = RoundedCornerShape(16.dp))
+                    .background(
+                        color = sliderColor,
+                        shape = RoundedCornerShape(BOTTOM_BAR_CORNER_RADIUS_VAL.dp)
+                    )
             )
             // кнопки поверх slider
             BottomBarTabs(
-                tabs = tabs,
-                tabNames = tabNames,
-                selectedIndex = selectedIndex,
-                navController = navController,
-                textColorSelected = textColorSelected,
-                textColorUnselected = textColorUnselected,
-                fontSize = fontSize
+                params = BottomBarTabsParams(
+                    tabs = tabs,
+                    tabNames = tabNames,
+                    selectedIndex = selectedIndex,
+                    textColorSelected = textColorSelected,
+                    textColorUnselected = textColorUnselected,
+                    fontSize = fontSize
+                ),
+                navController = navController
             )
         }
     }
@@ -139,21 +160,16 @@ private fun CustomAnimatedBottomBar(
 
 @Composable
 private fun BottomBarTabs(
-    tabs: List<Screen>,
-    tabNames: List<String>,
-    selectedIndex: Int,
-    navController: NavHostController,
-    textColorSelected: Color,
-    textColorUnselected: Color,
-    fontSize: TextUnit
+    params: BottomBarTabsParams,
+    navController: NavHostController
 ) {
     Row(modifier = Modifier.fillMaxSize()) {
-        tabs.forEachIndexed { index, screen ->
-            val isSelected = index == selectedIndex
+        params.tabs.forEachIndexed { index, screen ->
+            val isSelected = index == params.selectedIndex
 
             Box(
                 modifier = Modifier
-                    .weight(1f)
+                    .weight(TAB_WEIGHT)
                     .fillMaxHeight()
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
@@ -170,9 +186,9 @@ private fun BottomBarTabs(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = tabNames[index],
-                    color = if (isSelected) textColorSelected else textColorUnselected,
-                    fontSize = fontSize,
+                    text = params.tabNames[index],
+                    color = if (isSelected) params.textColorSelected else params.textColorUnselected,
+                    fontSize = params.fontSize,
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                 )
             }

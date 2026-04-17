@@ -36,13 +36,34 @@ private const val HISTOGRAM_SIGMA_MULTIPLIER = 2
 private const val HISTOGRAM_MIN_STD_DEV = 0.001f
 private const val HISTOGRAM_TEXT_OFFSET = 10f
 private const val HISTOGRAM_AXIS_WIDTH = 3f
-private const val HISTOGRAM_BG_COLOR = 0xFFFFFFFF
-private const val HISTOGRAM_LINE_COLOR = 0xFFE0E0E0
-private const val HISTOGRAM_SIGMA_COLOR = 0x224CAF50
+private const val HISTOGRAM_BG_COLOR_VAL = 0xFFFFFFFFL
+private const val HISTOGRAM_LINE_COLOR_VAL = 0xFFE0E0E0L
+private const val HISTOGRAM_SIGMA_COLOR_VAL = 0x224CAF50
 private const val HISTOGRAM_FRACTION_MAX = 0.999f
 private const val HISTOGRAM_Y_LABEL_DIVISOR_X = 1.7f
 private const val HISTOGRAM_Y_LABEL_DIVISOR_Y = 10f
 private const val HISTOGRAM_X_LABEL_DIVISOR_Y = 0.85f
+private const val CHART_HEIGHT_VAL = 220
+private const val CHART_SPACING_VAL = 8
+
+data class HistogramDrawConfig(
+    val minVal: Float,
+    val maxVal: Float,
+    val plotW: Float,
+    val plotH: Float,
+    val mean: Float,
+    val stdDev: Float,
+    val maxBinCount: Int
+)
+
+data class HistogramStats(
+    val mean: Float,
+    val stdDev: Float,
+    val minVal: Float,
+    val maxVal: Float,
+    val bins: IntArray,
+    val maxBinCount: Int
+)
 
 @Composable
 fun HistogramChart(
@@ -56,8 +77,47 @@ fun HistogramChart(
     val values = samples.filter { it.touchData.key == targetKey }.map(valueSelector)
     if (values.isEmpty()) return
 
+    val stats = calculateHistogramStats(values) ?: return
     val textMeasurer = rememberTextMeasurer()
 
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(text = title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Text(
+            text = "μ = ${"%.2f".format(stats.mean)}, σ = ${"%.2f".format(stats.stdDev)}",
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSecondary
+        )
+        Spacer(modifier = Modifier.height(CHART_SPACING_VAL.dp))
+
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(CHART_HEIGHT_VAL.dp)
+                .background(Color(HISTOGRAM_BG_COLOR_VAL))
+        ) {
+            val plotW = size.width - HISTOGRAM_PAD_LEFT - HISTOGRAM_PAD_RIGHT
+            val plotH = size.height - HISTOGRAM_PAD_BOTTOM - HISTOGRAM_PAD_TOP
+            val config = HistogramDrawConfig(
+                stats.minVal,
+                stats.maxVal,
+                plotW,
+                plotH,
+                stats.mean,
+                stats.stdDev,
+                stats.maxBinCount
+            )
+
+            drawHistogramGrid(config, textMeasurer)
+            drawHistogramSigma(config)
+            drawHistogramBars(stats.bins, secondaryColor, config)
+            drawHistogramAxes(unit, textMeasurer)
+        }
+    }
+}
+
+private fun calculateHistogramStats(values: List<Float>): HistogramStats? {
     val initialMean = values.average().toFloat()
     val initialStdDev = sqrt(values.map { (it - initialMean).pow(2) }.average())
         .toFloat()
@@ -67,7 +127,7 @@ fun HistogramChart(
     val lowerBound = initialMean - HISTOGRAM_SIGMA_MULTIPLIER * initialStdDev
     val upperBound = initialMean + HISTOGRAM_SIGMA_MULTIPLIER * initialStdDev
     val filteredValues = values.filter { it in lowerBound..upperBound }
-    if (filteredValues.isEmpty()) return
+    if (filteredValues.isEmpty()) return null
 
     val mean = filteredValues.average().toFloat()
     val stdDev = sqrt(filteredValues.map { (it - mean).pow(2) }.average())
@@ -89,48 +149,17 @@ fun HistogramChart(
     }
     val maxBinCount = bins.maxOrNull()?.coerceAtLeast(1) ?: 1
 
-    Column(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(text = title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-        Text(
-            text = "μ = ${"%.2f".format(mean)}, σ = ${"%.2f".format(stdDev)}",
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSecondary
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Canvas(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(220.dp)
-                .background(Color(HISTOGRAM_BG_COLOR))
-        ) {
-            val plotW = size.width - HISTOGRAM_PAD_LEFT - HISTOGRAM_PAD_RIGHT
-            val plotH = size.height - HISTOGRAM_PAD_BOTTOM - HISTOGRAM_PAD_TOP
-
-            drawHistogramGrid(maxBinCount, minVal, maxVal, plotW, plotH, textMeasurer)
-            drawHistogramSigma(mean, stdDev, minVal, maxVal, plotW, plotH)
-            drawHistogramBars(bins, maxBinCount, minVal, maxVal, mean, plotW, plotH, secondaryColor)
-            drawHistogramAxes(unit, textMeasurer)
-        }
-    }
+    return HistogramStats(mean, stdDev, minVal, maxVal, bins, maxBinCount)
 }
 
-private fun DrawScope.drawHistogramGrid(
-    maxBinCount: Int,
-    minVal: Float,
-    maxVal: Float,
-    plotW: Float,
-    plotH: Float,
-    textMeasurer: TextMeasurer
-) {
+private fun DrawScope.drawHistogramGrid(config: HistogramDrawConfig, textMeasurer: TextMeasurer) {
     // cетка и подписи осей
     for (i in 0..HISTOGRAM_Y_STEPS) {
-        val yCount = maxBinCount * i / HISTOGRAM_Y_STEPS
-        val yPos = size.height - HISTOGRAM_PAD_BOTTOM - i / HISTOGRAM_Y_STEPS.toFloat() * plotH
+        val yCount = config.maxBinCount * i / HISTOGRAM_Y_STEPS
+        val yPos =
+            size.height - HISTOGRAM_PAD_BOTTOM - i / HISTOGRAM_Y_STEPS.toFloat() * config.plotH
         drawLine(
-            Color(HISTOGRAM_LINE_COLOR),
+            Color(HISTOGRAM_LINE_COLOR_VAL),
             Offset(HISTOGRAM_PAD_LEFT, yPos),
             Offset(size.width - HISTOGRAM_PAD_RIGHT, yPos)
         )
@@ -149,20 +178,17 @@ private fun DrawScope.drawHistogramGrid(
     }
 
     for (i in 0..HISTOGRAM_X_STEPS) {
-        val xVal = minVal + (maxVal - minVal) * i / HISTOGRAM_X_STEPS
-        val xPos = HISTOGRAM_PAD_LEFT + i / HISTOGRAM_X_STEPS.toFloat() * plotW
+        val xVal = config.minVal + (config.maxVal - config.minVal) * i / HISTOGRAM_X_STEPS
+        val xPos = HISTOGRAM_PAD_LEFT + i / HISTOGRAM_X_STEPS.toFloat() * config.plotW
         drawLine(
-            Color(HISTOGRAM_LINE_COLOR),
+            Color(HISTOGRAM_LINE_COLOR_VAL),
             Offset(xPos, HISTOGRAM_PAD_TOP),
             Offset(xPos, size.height - HISTOGRAM_PAD_BOTTOM)
         )
 
         val label = "%.0f".format(xVal)
         val textLayout =
-            textMeasurer.measure(
-                label,
-                TextStyle(fontSize = 10.sp, color = Color.DarkGray)
-            )
+            textMeasurer.measure(label, TextStyle(fontSize = 10.sp, color = Color.DarkGray))
         drawText(
             textLayout,
             topLeft = Offset(
@@ -173,44 +199,34 @@ private fun DrawScope.drawHistogramGrid(
     }
 }
 
-private fun DrawScope.drawHistogramSigma(
-    mean: Float,
-    stdDev: Float,
-    minVal: Float,
-    maxVal: Float,
-    plotW: Float,
-    plotH: Float
-) {
+private fun DrawScope.drawHistogramSigma(config: HistogramDrawConfig) {
     // коридор сигма
-    val sigmaLeft = (mean - stdDev).coerceAtLeast(minVal)
-    val sigmaRight = (mean + stdDev).coerceAtMost(maxVal)
+    val sigmaLeft = (config.mean - config.stdDev).coerceAtLeast(config.minVal)
+    val sigmaRight = (config.mean + config.stdDev).coerceAtMost(config.maxVal)
 
-    val startX = HISTOGRAM_PAD_LEFT + (sigmaLeft - minVal) / (maxVal - minVal) * plotW
-    val endX = HISTOGRAM_PAD_LEFT + (sigmaRight - minVal) / (maxVal - minVal) * plotW
+    val startX =
+        HISTOGRAM_PAD_LEFT + (sigmaLeft - config.minVal) / (config.maxVal - config.minVal) * config.plotW
+    val endX =
+        HISTOGRAM_PAD_LEFT + (sigmaRight - config.minVal) / (config.maxVal - config.minVal) * config.plotW
 
     drawRect(
-        color = Color(HISTOGRAM_SIGMA_COLOR),
+        color = Color(HISTOGRAM_SIGMA_COLOR_VAL),
         topLeft = Offset(startX, HISTOGRAM_PAD_TOP),
-        size = Size(endX - startX, plotH)
+        size = Size(endX - startX, config.plotH)
     )
 }
 
 private fun DrawScope.drawHistogramBars(
     bins: IntArray,
-    maxBinCount: Int,
-    minVal: Float,
-    maxVal: Float,
-    mean: Float,
-    plotW: Float,
-    plotH: Float,
-    secondaryColor: Color
+    secondaryColor: Color,
+    config: HistogramDrawConfig
 ) {
     // столбцы гистограммы
-    val binW = plotW / HISTOGRAM_BIN_COUNT
+    val binW = config.plotW / HISTOGRAM_BIN_COUNT
     for (i in 0 until HISTOGRAM_BIN_COUNT) {
         val count = bins[i]
         if (count > 0) {
-            val barH = count.toFloat() / maxBinCount * plotH
+            val barH = count.toFloat() / config.maxBinCount * config.plotH
             val barX = HISTOGRAM_PAD_LEFT + i * binW
             val barY = size.height - HISTOGRAM_PAD_BOTTOM - barH
             drawRect(
@@ -221,7 +237,8 @@ private fun DrawScope.drawHistogramBars(
         }
     }
 
-    val meanX = HISTOGRAM_PAD_LEFT + (mean - minVal) / (maxVal - minVal) * plotW
+    val meanX =
+        HISTOGRAM_PAD_LEFT + (config.mean - config.minVal) / (config.maxVal - config.minVal) * config.plotW
     drawLine(
         Color.Red,
         Offset(meanX, HISTOGRAM_PAD_TOP),
@@ -230,10 +247,7 @@ private fun DrawScope.drawHistogramBars(
     )
 }
 
-private fun DrawScope.drawHistogramAxes(
-    unit: String,
-    textMeasurer: TextMeasurer
-) {
+private fun DrawScope.drawHistogramAxes(unit: String, textMeasurer: TextMeasurer) {
     // оси
     drawLine(
         Color.Black,
@@ -250,18 +264,14 @@ private fun DrawScope.drawHistogramAxes(
 
     // подписи к осям
     drawText(
-        textMeasurer.measure(
-            "шт",
-            TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold)
-        ), topLeft = Offset(
+        textMeasurer.measure("шт", TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold)),
+        topLeft = Offset(
             HISTOGRAM_PAD_LEFT / HISTOGRAM_Y_LABEL_DIVISOR_X,
             HISTOGRAM_PAD_TOP / HISTOGRAM_Y_LABEL_DIVISOR_Y
         )
     )
-    val xLabel = textMeasurer.measure(
-        unit,
-        TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold)
-    )
+    val xLabel =
+        textMeasurer.measure(unit, TextStyle(fontSize = 14.sp, fontWeight = FontWeight.Bold))
     drawText(
         xLabel,
         topLeft = Offset(
