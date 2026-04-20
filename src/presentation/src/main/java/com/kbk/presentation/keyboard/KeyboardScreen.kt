@@ -13,6 +13,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerInputChange
 import com.kbk.presentation.keyboard.KeyboardConstants.KEYBOARD_HEIGHT
 import com.kbk.presentation.keyboard.KeyboardConstants.KEYBOARD_PADDING_HORIZONTAL
 import com.kbk.presentation.keyboard.KeyboardConstants.KEYBOARD_PADDING_VERTICAL
@@ -24,14 +25,12 @@ data class KeyboardRowParams(
     val keys: List<String>,
     val horizontalPadding: Float = ZERO_PADDING,
     val isShifted: Boolean = false,
-    val viewModel: KeyboardViewModel? = null,
     val isBackdrop: Boolean = false
 )
 
 data class LettersThirdRowParams(
     val row3: List<String>,
     val isShifted: Boolean,
-    val viewModel: KeyboardViewModel?,
     val isBackdrop: Boolean,
     val sideWeight: Float
 )
@@ -52,6 +51,10 @@ fun KeyboardScreen(
         onExternalAction = onAction
     )
 
+    val onKeyEvent = { key: String, down: PointerInputChange, up: PointerInputChange ->
+        viewModel.onKeyEvent(key, down, up)
+    }
+
     val internalOnAction: (KeyboardAction) -> Unit = { action ->
         processKeyboardAction(action, language, isShifted, actions)
     }
@@ -68,12 +71,12 @@ fun KeyboardScreen(
             KeyboardLayoutType.LETTERS -> LettersLayout(
                 language,
                 isShifted,
-                viewModel,
+                onKeyEvent,
                 isBackdrop = false,
                 onAction = internalOnAction
             )
-            KeyboardLayoutType.NUMBERS -> NumbersLayout(viewModel, internalOnAction)
-            KeyboardLayoutType.SYMBOLS -> SymbolsLayout(viewModel, internalOnAction)
+            KeyboardLayoutType.NUMBERS -> NumbersLayout(onKeyEvent, internalOnAction)
+            KeyboardLayoutType.SYMBOLS -> SymbolsLayout(onKeyEvent, internalOnAction)
         }
     }
 }

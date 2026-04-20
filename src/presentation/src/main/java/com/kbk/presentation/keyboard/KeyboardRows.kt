@@ -7,10 +7,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerInputChange
 
 @Composable
 internal fun ColumnScope.KeyboardRow(
     params: KeyboardRowParams,
+    onKeyEvent: ((String, PointerInputChange, PointerInputChange) -> Unit)?,
     onAction: (KeyboardAction) -> Unit
 ) {
     Row(
@@ -25,10 +27,10 @@ internal fun ColumnScope.KeyboardRow(
                 params = KeyboardKeyParams(
                     text,
                     KeyType.NORMAL,
-                    params.viewModel,
                     params.isBackdrop
                 ),
-                modifier = Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
+                modifier = Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
+                onKeyEvent = onKeyEvent
             ) {
                 onAction(KeyboardAction.CommitText(key))
             }
@@ -41,7 +43,7 @@ internal fun ColumnScope.KeyboardRow(
 internal fun ColumnScope.BottomRow(
     language: KeyboardLanguage?,
     layoutType: KeyboardLayoutType = KeyboardLayoutType.LETTERS,
-    viewModel: KeyboardViewModel? = null,
+    onKeyEvent: ((String, PointerInputChange, PointerInputChange) -> Unit)?,
     isBackdrop: Boolean = false,
     onAction: (KeyboardAction) -> Unit
 ) {
@@ -55,8 +57,9 @@ internal fun ColumnScope.BottomRow(
             if (layoutType == KeyboardLayoutType.LETTERS) KeyboardLayoutType.NUMBERS else KeyboardLayoutType.LETTERS
 
         KeyboardKey(
-            KeyboardKeyParams(switchText, KeyType.LAYOUT_CHANGE, viewModel, isBackdrop),
-            Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
+            KeyboardKeyParams(switchText, KeyType.LAYOUT_CHANGE, isBackdrop),
+            Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
+            onKeyEvent = onKeyEvent
         ) {
             onAction(KeyboardAction.ChangeLayout(nextLayout))
         }
@@ -64,13 +67,13 @@ internal fun ColumnScope.BottomRow(
         when (layoutType) {
             KeyboardLayoutType.LETTERS -> BottomRowLetters(
                 language,
-                viewModel,
+                onKeyEvent,
                 isBackdrop,
                 onAction
             )
 
-            KeyboardLayoutType.NUMBERS -> BottomRowNumbers(viewModel, onAction)
-            KeyboardLayoutType.SYMBOLS -> BottomRowSymbols(viewModel, onAction)
+            KeyboardLayoutType.NUMBERS -> BottomRowNumbers(onKeyEvent, onAction)
+            KeyboardLayoutType.SYMBOLS -> BottomRowSymbols(onKeyEvent, onAction)
         }
     }
 }
@@ -78,75 +81,87 @@ internal fun ColumnScope.BottomRow(
 @Composable
 private fun RowScope.BottomRowLetters(
     language: KeyboardLanguage?,
-    viewModel: KeyboardViewModel?,
+    onKeyEvent: ((String, PointerInputChange, PointerInputChange) -> Unit)?,
     isBackdrop: Boolean,
     onAction: (KeyboardAction) -> Unit
 ) {
     KeyboardKey(
-        KeyboardKeyParams(",", KeyType.PUNCTUATION_MARKS, viewModel, isBackdrop),
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
+        KeyboardKeyParams(",", KeyType.PUNCTUATION_MARKS, isBackdrop),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
+        onKeyEvent = onKeyEvent
     ) { onAction(KeyboardAction.CommitText(",")) }
     val langText = if (language == KeyboardLanguage.RU) "RU" else "EN"
     KeyboardKey(
-        KeyboardKeyParams(langText, KeyType.LANGUAGE_CHANGE, viewModel, isBackdrop),
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
+        KeyboardKeyParams(langText, KeyType.LANGUAGE_CHANGE, isBackdrop),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
+        onKeyEvent = onKeyEvent
     ) { onAction(KeyboardAction.SwitchLanguage) }
     KeyboardKey(
-        KeyboardKeyParams("", KeyType.SPACE, viewModel, isBackdrop),
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_SPACE)
+        KeyboardKeyParams(" ", KeyType.SPACE, isBackdrop),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_SPACE),
+        onKeyEvent = onKeyEvent
     ) { onAction(KeyboardAction.Space) }
     KeyboardKey(
-        KeyboardKeyParams(".", KeyType.PUNCTUATION_MARKS, viewModel, isBackdrop),
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
+        KeyboardKeyParams(".", KeyType.PUNCTUATION_MARKS, isBackdrop),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
+        onKeyEvent = onKeyEvent
     ) { onAction(KeyboardAction.CommitText(".")) }
     KeyboardKey(
-        KeyboardKeyParams("↵", KeyType.ENTER, viewModel, isBackdrop),
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_LARGE)
+        KeyboardKeyParams("↵", KeyType.ENTER, isBackdrop),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_LARGE),
+        onKeyEvent = onKeyEvent
     ) { onAction(KeyboardAction.Enter) }
 }
 
 @Composable
 private fun RowScope.BottomRowNumbers(
-    viewModel: KeyboardViewModel?,
+    onKeyEvent: ((String, PointerInputChange, PointerInputChange) -> Unit)?,
     onAction: (KeyboardAction) -> Unit
 ) {
     KeyboardKey(
-        KeyboardKeyParams(",", KeyType.PUNCTUATION_MARKS, viewModel),
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
+        KeyboardKeyParams(",", KeyType.PUNCTUATION_MARKS),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
+        onKeyEvent = onKeyEvent
     ) { onAction(KeyboardAction.CommitText(",")) }
     KeyboardKey(
-        KeyboardKeyParams("", KeyType.SPACE, viewModel),
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_SPACE)
+        KeyboardKeyParams(" ", KeyType.SPACE),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_SPACE),
+        onKeyEvent = onKeyEvent
     ) { onAction(KeyboardAction.Space) }
     KeyboardKey(
-        KeyboardKeyParams(".", KeyType.PUNCTUATION_MARKS, viewModel),
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
+        KeyboardKeyParams(".", KeyType.PUNCTUATION_MARKS),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
+        onKeyEvent = onKeyEvent
     ) { onAction(KeyboardAction.CommitText(".")) }
     KeyboardKey(
-        KeyboardKeyParams("↵", KeyType.ENTER, viewModel),
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_LARGE)
+        KeyboardKeyParams("↵", KeyType.ENTER),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_LARGE),
+        onKeyEvent = onKeyEvent
     ) { onAction(KeyboardAction.Enter) }
 }
 
 @Composable
 private fun RowScope.BottomRowSymbols(
-    viewModel: KeyboardViewModel?,
+    onKeyEvent: ((String, PointerInputChange, PointerInputChange) -> Unit)?,
     onAction: (KeyboardAction) -> Unit
 ) {
     KeyboardKey(
-        KeyboardKeyParams("", KeyType.SPACE, viewModel),
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_SYMBOLS_SPACE)
+        KeyboardKeyParams(" ", KeyType.SPACE),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_SYMBOLS_SPACE),
+        onKeyEvent = onKeyEvent
     ) { onAction(KeyboardAction.Space) }
     KeyboardLayouts.SYM_ROW_4.forEach { key ->
         KeyboardKey(
-            KeyboardKeyParams(key, KeyType.NORMAL, viewModel),
-            Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
+            KeyboardKeyParams(key, KeyType.NORMAL),
+            Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
+            onKeyEvent = onKeyEvent
         ) {
             onAction(KeyboardAction.CommitText(key))
         }
     }
     KeyboardKey(
-        KeyboardKeyParams("↵", KeyType.ENTER, viewModel),
-        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL)
+        KeyboardKeyParams("↵", KeyType.ENTER),
+        Modifier.weight(KeyboardConstants.KEY_WEIGHT_NORMAL),
+        onKeyEvent = onKeyEvent
     ) { onAction(KeyboardAction.Enter) }
 }
