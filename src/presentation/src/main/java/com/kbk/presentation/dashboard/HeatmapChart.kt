@@ -159,6 +159,7 @@ private fun HeatmapCanvasArea(
                 LettersLayout(
                     language = if (params.isRu) KeyboardLanguage.RU else KeyboardLanguage.EN,
                     isShifted = false,
+                    onKeyEvent = null,
                     isBackdrop = true,
                     onAction = {}
                 )
@@ -306,11 +307,17 @@ private class HeatmapCalculator(
         val scaleX = if (origInnerW > 0) curInnerW / origInnerW else 1f
         val scaleY = if (origInnerH > 0) curInnerH / origInnerH else 1f
 
-        val scaledTouchX = sample.touchData.touchX * scaleX
-        val scaledTouchY = sample.touchData.touchY * scaleY
+        // отсекаем паддинг от оригинального касания, чтобы получить координату внутри кнопки
+        val origInnerTouchX = sample.touchData.touchX - config.padX
+        val origInnerTouchY = sample.touchData.touchY - config.padY
 
-        val globalX = curRect.left + config.padX + scaledTouchX
-        val globalY = curRect.top + config.padY + scaledTouchY
+        // масштабируем касание под размеры новой кнопки на дашборде
+        val scaledInnerTouchX = origInnerTouchX * scaleX
+        val scaledInnerTouchY = origInnerTouchY * scaleY
+
+        // возвращаем паддинг, чтобы позиция на Canvas совпала с позицией визуальной рамки кнопки
+        val globalX = curRect.left + config.padX + scaledInnerTouchX
+        val globalY = curRect.top + config.padY + scaledInnerTouchY
 
         val gridX = globalX * config.scaleFactor
         val gridY = globalY * config.scaleFactor
@@ -486,7 +493,7 @@ private fun buildRow4(isRu: Boolean, cW: Float, rowH: Float, rects: MutableMap<S
     rects[if (isRu) "ru" else "en"] = Rect(curX, rowH * ROW_MUL_4, curX + r4W, rowH * ROW_MUL_5)
     curX += r4W
 
-    rects[""] = Rect(
+    rects[" "] = Rect(
         curX,
         rowH * ROW_MUL_4,
         curX + HEATMAP_SPACE_MULTIPLIER * r4W,

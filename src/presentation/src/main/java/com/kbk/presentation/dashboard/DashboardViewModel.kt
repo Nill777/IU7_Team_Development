@@ -48,43 +48,7 @@ class DashboardViewModel(
                 val sortedKeys = keysFreq.entries.sortedByDescending { it.value }.map { it.key }
 
                 // матрицы переходов по flight
-                val ruRawMatrix = mutableMapOf<Pair<String, String>, MutableList<Long>>()
-                val enRawMatrix = mutableMapOf<Pair<String, String>, MutableList<Long>>()
-
-                val sortedData = data.sortedBy { it.motionData.timestamp }
-
-                for (i in 0 until sortedData.size - 1) {
-                    val from = sortedData[i]
-                    val to = sortedData[i + 1]
-                    val flightTime = to.touchData.flightTime
-
-                    // игнорируем переходы дольше 2000 мс
-                    if (to.motionData.timestamp - from.motionData.timestamp < MAX_TRANSITION_TIME_MS &&
-                        flightTime < MAX_TRANSITION_TIME_MS
-                    ) {
-                        val fromKey = from.touchData.key.lowercase()
-                        val toKey = to.touchData.key.lowercase()
-
-                        val isRu = fromKey.length == 1 && toKey.length == 1 &&
-                                fromKey.all { it in 'а'..'я' || it == 'ё' } &&
-                                toKey.all { it in 'а'..'я' || it == 'ё' }
-
-                        val isEn = fromKey.length == 1 && toKey.length == 1 &&
-                                fromKey.all { it in 'a'..'z' } &&
-                                toKey.all { it in 'a'..'z' }
-
-                        if (isRu) {
-                            ruRawMatrix.getOrPut(fromKey to toKey) { mutableListOf() }
-                                .add(flightTime)
-                        } else if (isEn) {
-                            enRawMatrix.getOrPut(fromKey to toKey) { mutableListOf() }
-                                .add(flightTime)
-                        }
-                    }
-                }
-
-                val ruMatrix = ruRawMatrix.mapValues { it.value.average().toFloat() }
-                val enMatrix = enRawMatrix.mapValues { it.value.average().toFloat() }
+                val (ruMatrix, enMatrix) = biometricService.calculateTransitionMatrices(data)
 
                 _uiState.value = _uiState.value.copy(
                     samples = data,

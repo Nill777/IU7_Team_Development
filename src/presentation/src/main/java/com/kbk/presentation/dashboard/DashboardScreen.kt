@@ -179,7 +179,7 @@ private fun DistributionDropdown(state: DashboardUiState, viewModel: DashboardVi
         onExpandedChange = { expandedKey = !expandedKey }) {
         TextField(
             readOnly = true,
-            value = if (state.selectedKey.isEmpty()) "Клавиша: Пробел" else "Клавиша: ${state.selectedKey}",
+            value = if (state.selectedKey == " ") "Клавиша: Пробел" else "Клавиша: ${state.selectedKey}",
             onValueChange = { },
             label = { Text("Анализируемая клавиша") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedKey) },
@@ -203,7 +203,9 @@ private fun DistributionDropdown(state: DashboardUiState, viewModel: DashboardVi
             containerColor = MaterialTheme.colorScheme.background
         ) {
             state.sortedAvailableKeys.forEach { key ->
-                val displayKey = key.ifEmpty { "Пробел" }
+                val displayKey = if (key == " ") {
+                    "Пробел"
+                } else key
                 DropdownMenuItem(
                     text = { Text(displayKey, color = MaterialTheme.colorScheme.onBackground) },
                     onClick = { viewModel.setSelectedKey(key); expandedKey = false }
