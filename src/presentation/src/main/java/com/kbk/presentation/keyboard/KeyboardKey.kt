@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -55,7 +56,6 @@ private val KeyType.fontSize: TextUnit
 data class KeyboardKeyParams(
     val text: String,
     val type: KeyType = KeyType.NORMAL,
-    val viewModel: KeyboardViewModel? = null,
     val isBackdrop: Boolean = false
 )
 
@@ -69,6 +69,7 @@ data class KeyboardKeyStyles(
 fun KeyboardKey(
     params: KeyboardKeyParams,
     modifier: Modifier = Modifier,
+    onKeyEvent: ((String, PointerInputChange, PointerInputChange) -> Unit)?,
     onClick: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -83,7 +84,7 @@ fun KeyboardKey(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .applyKeyboardInteraction(params, interactionSource, onClick),
+            .applyKeyboardInteraction(params, interactionSource, onKeyEvent, onClick),
         contentAlignment = Alignment.Center
     ) {
         KeyboardKeyContent(
@@ -98,9 +99,10 @@ fun KeyboardKey(
 private fun Modifier.applyKeyboardInteraction(
     params: KeyboardKeyParams,
     interactionSource: MutableInteractionSource,
+    onKeyEvent: ((String, PointerInputChange, PointerInputChange) -> Unit)?,
     onClick: () -> Unit
 ): Modifier {
-    return if (!params.isBackdrop && params.viewModel != null) {
+    return if (!params.isBackdrop && onKeyEvent != null) {
         this
             .pointerInput(Unit) {
                 awaitPointerEventScope {
@@ -110,7 +112,7 @@ private fun Modifier.applyKeyboardInteraction(
                         val upEvent = waitForUpOrCancellation(pass = PointerEventPass.Initial)
 
                         if (upEvent != null) {
-                            params.viewModel.onKeyEvent(params.text, downEvent, upEvent)
+                            onKeyEvent(params.text, downEvent, upEvent)
                         }
                     }
                 }
