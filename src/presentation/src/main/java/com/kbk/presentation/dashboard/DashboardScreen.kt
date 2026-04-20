@@ -41,6 +41,7 @@ private const val NO_MATRIX_TEXT_SIZE_VAL = 14
 private const val COLOR_ACCELEROMETER_VAL = 0xFFF44336L
 private const val COLOR_GYROSCOPE_VAL = 0xFF4CAF50L
 private const val COLOR_ROTATION_VAL = 0xFF2196F3L
+private const val COLOR_GRAVITY_VAL = 0xFF9C27B0
 
 @Composable
 fun DashboardScreen(viewModel: DashboardViewModel) {
@@ -317,6 +318,13 @@ private fun MicromotorCard(state: DashboardUiState) {
                 state.samples,
                 SensorType.ROTATION_VECTOR,
                 Color(COLOR_ROTATION_VAL)
+            )
+            Spacer(Modifier.height(DASHBOARD_PADDING_VAL.dp))
+            RadarChart(
+                "Гравитация",
+                state.samples,
+                SensorType.GRAVITY,
+                Color(COLOR_GRAVITY_VAL)
             )
         }
     }

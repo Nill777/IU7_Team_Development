@@ -80,6 +80,12 @@ fun RadarChart(
             samples.map { abs(it.motionData.rotVecY) }.average().toFloat(),
             samples.map { abs(it.motionData.rotVecZ) }.average().toFloat()
         )
+
+        SensorType.GRAVITY -> floatArrayOf(
+            samples.map { abs(it.motionData.gravX) }.average().toFloat(),
+            samples.map { abs(it.motionData.gravY) }.average().toFloat(),
+            samples.map { abs(it.motionData.gravZ) }.average().toFloat()
+        )
     }
 
     Column(

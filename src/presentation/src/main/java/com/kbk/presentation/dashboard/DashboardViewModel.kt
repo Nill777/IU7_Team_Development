@@ -17,7 +17,7 @@ enum class HeatmapMetricType(val label: String, val unit: String) {
 }
 
 enum class SensorType {
-    ACCELEROMETER, GYROSCOPE, ROTATION_VECTOR
+    ACCELEROMETER, GYROSCOPE, ROTATION_VECTOR, GRAVITY
 }
 
 data class DashboardUiState(
