@@ -10,5 +10,9 @@ data class MotionData(
     val gyroZ: Float = 0f,
     val rotVecX: Float = 0f,
     val rotVecY: Float = 0f,
-    val rotVecZ: Float = 0f
+    val rotVecZ: Float = 0f,
+    val gravX: Float = 0f,
+    val gravY: Float = 0f,
+    val gravZ: Float = 0f
+
 )

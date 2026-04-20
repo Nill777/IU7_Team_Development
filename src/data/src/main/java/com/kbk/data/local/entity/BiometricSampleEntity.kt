@@ -27,5 +27,8 @@ data class BiometricSampleEntity(
     val gyroZ: Float,
     val rotVecX: Float,
     val rotVecY: Float,
-    val rotVecZ: Float
+    val rotVecZ: Float,
+    val gravX: Float,
+    val gravY: Float,
+    val gravZ: Float
 )

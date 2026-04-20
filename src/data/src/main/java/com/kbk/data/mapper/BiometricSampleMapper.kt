@@ -24,7 +24,10 @@ fun BiometricSample.toEntity(): BiometricSampleEntity {
         gyroZ = this.motionData.gyroZ,
         rotVecX = this.motionData.rotVecX,
         rotVecY = this.motionData.rotVecY,
-        rotVecZ = this.motionData.rotVecZ
+        rotVecZ = this.motionData.rotVecZ,
+        gravX = this.motionData.gravX,
+        gravY = this.motionData.gravY,
+        gravZ = this.motionData.gravZ
     )
 }
 
@@ -50,7 +53,10 @@ fun BiometricSampleEntity.toDomain(): BiometricSample {
             gyroZ,
             rotVecX,
             rotVecY,
-            rotVecZ
+            rotVecZ,
+            gravX,
+            gravY,
+            gravZ
         )
     )
 }
