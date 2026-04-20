@@ -18,7 +18,8 @@ class AndroidMotionRepository(context: Context) : IMotionRepository, SensorEvent
     private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
     private val accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION)
     private val gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
-    private val rotVecSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+    private val rotVecSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR)
+    private val gravitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY)
 
     private var sensorThread: HandlerThread? = null
     private var sensorHandler: Handler? = null
@@ -33,6 +34,7 @@ class AndroidMotionRepository(context: Context) : IMotionRepository, SensorEvent
     private val curAcc = FloatArray(AXIS_COUNT)
     private val curGyro = FloatArray(AXIS_COUNT)
     private val curRot = FloatArray(AXIS_COUNT)
+    private val curGrav = FloatArray(AXIS_COUNT)
 
     override fun startTracking() {
         if (sensorThread == null) {
@@ -41,7 +43,7 @@ class AndroidMotionRepository(context: Context) : IMotionRepository, SensorEvent
             sensorHandler = Handler(thread.looper)
         }
 
-        listOf(accelSensor, gyroSensor, rotVecSensor).forEach { sensor ->
+        listOf(accelSensor, gyroSensor, rotVecSensor, gravitySensor).forEach { sensor ->
             sensor?.let {
                 sensorManager.registerListener(
                     this,
@@ -58,7 +60,6 @@ class AndroidMotionRepository(context: Context) : IMotionRepository, SensorEvent
         sensorThread?.quitSafely()
         sensorThread = null
         sensorHandler = null
-
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
@@ -74,17 +75,24 @@ class AndroidMotionRepository(context: Context) : IMotionRepository, SensorEvent
                     event.values[2]
             }
 
-            Sensor.TYPE_ROTATION_VECTOR -> {
+            Sensor.TYPE_GAME_ROTATION_VECTOR -> {
                 curRot[0] = event.values[0]; curRot[1] = event.values[1]; curRot[2] =
                     event.values[2]
             }
+
+            Sensor.TYPE_GRAVITY -> {
+                curGrav[0] = event.values[0]; curGrav[1] = event.values[1]; curGrav[2] =
+                    event.values[2]
+            }
         }
+
         _motionState.update {
             MotionData(
                 timestamp = System.currentTimeMillis(),
                 accX = curAcc[0], accY = curAcc[1], accZ = curAcc[2],
                 gyroX = curGyro[0], gyroY = curGyro[1], gyroZ = curGyro[2],
-                rotVecX = curRot[0], rotVecY = curRot[1], rotVecZ = curRot[2]
+                rotVecX = curRot[0], rotVecY = curRot[1], rotVecZ = curRot[2],
+                gravX = curGrav[0], gravY = curGrav[1], gravZ = curGrav[2]
             )
         }
     }
