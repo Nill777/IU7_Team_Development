@@ -23,6 +23,7 @@ class BiometricService(
     private companion object {
         const val MAX_TRANSITION_TIME_MS = 2000L
         const val ATTEMPT_WINDOW_SIZE = 4
+        const val TRAINING_WINDOW_SIZE = 100 // объем окна для обучения
     }
 
     private val _verificationResultFlow = MutableStateFlow<VerificationResult?>(null)
@@ -68,7 +69,24 @@ class BiometricService(
 
     override suspend fun trainProfileFromDb() {
         val allSamples = biometricRepository.getAllSamples().first()
-        currentProfile = verificationManager.train(allSamples)
+
+        // применяем скользящее окно, берем только TRAINING_WINDOW_SIZE последних записей на каждую клавишу
+        val trainingSamples = applySlidingWindow(allSamples, TRAINING_WINDOW_SIZE)
+
+        currentProfile = verificationManager.train(trainingSamples)
+    }
+
+    private fun applySlidingWindow(
+        samples: List<BiometricSample>,
+        windowSize: Int
+    ): List<BiometricSample> {
+        return samples.groupBy { it.touchData.key }
+            .flatMap { (_, samplesForKey) ->
+                // сортируем от новых к старым и берем окно
+                samplesForKey
+                    .sortedByDescending { it.motionData.timestamp }
+                    .take(windowSize)
+            }
     }
 
     override fun setVerificationStrategy(strategy: VerificationStrategy) {
