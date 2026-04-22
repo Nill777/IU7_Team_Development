@@ -22,8 +22,18 @@ class BiometricService(
 ) : IBiometricService {
     private companion object {
         const val MAX_TRANSITION_TIME_MS = 2000L
+
+        // размер батча для проверки
         const val ATTEMPT_WINDOW_SIZE = 4
-        const val TRAINING_WINDOW_SIZE = 100 // объем окна для обучения
+
+        // объем окна для обучения
+        const val TRAINING_WINDOW_SIZE = 100
+
+        // порог необходимого объема данных для верификации
+        const val AUTO_TRAIN_THRESHOLD = 500
+
+        // порог объема новых данных для переобучения
+        const val EVOLUTION_THRESHOLD = 25
     }
 
     private val _verificationResultFlow = MutableStateFlow<VerificationResult?>(null)
@@ -36,6 +46,9 @@ class BiometricService(
     // буфер текущей попытки ввода
     private val attemptBuffer = mutableListOf<BiometricSample>()
 
+    // счетчик успешно верифицированных и сохраненных записей с момента последнего обучения
+    private var samplesAddedSinceLastTrain = 0
+
     override fun startBiometricCollection() = motionRepository.startTracking()
     override fun stopBiometricCollection() = motionRepository.stopTracking()
 
@@ -45,26 +58,57 @@ class BiometricService(
             touchData = touch,
             motionData = currentMotion
         )
-        biometricRepository.saveSample(sample)
 
-        if (currentProfile != null) {
-            attemptBuffer.add(sample)
-            if (attemptBuffer.size >= ATTEMPT_WINDOW_SIZE) {
-                verifyCurrentBuffer()
-                attemptBuffer.clear()
-            }
+        // режим сбора данных
+        if (currentProfile == null) {
+            biometricRepository.saveSample(sample)
+            checkAutoTrainTrigger()
+        } else {
+            // рабочий режим: верификация, защита от отравления, эволюция профиля
+            processVerificationStep(sample)
         }
     }
 
-    private fun verifyCurrentBuffer() {
-        val profile = currentProfile ?: return
+    private suspend fun processVerificationStep(sample: BiometricSample) {
+        attemptBuffer.add(sample)
+        if (attemptBuffer.size < ATTEMPT_WINDOW_SIZE) return
+        val result = verifyCurrentBuffer()
+        if (result?.isOwner == true) {
+            handleSuccessfulVerification()
+        }
+
+        attemptBuffer.clear()
+    }
+
+    private suspend fun handleSuccessfulVerification() {
+        // сохраняем проверенные данные в БД
+        attemptBuffer.forEach { biometricRepository.saveSample(it) }
+        samplesAddedSinceLastTrain += attemptBuffer.size
+
+        // эволюция профиля
+        if (samplesAddedSinceLastTrain >= EVOLUTION_THRESHOLD) {
+            trainProfileFromDb()
+            samplesAddedSinceLastTrain = 0
+        }
+    }
+
+    private suspend fun checkAutoTrainTrigger() {
+        val count = biometricRepository.getSamplesCount()
+
+        if (count >= AUTO_TRAIN_THRESHOLD) {
+            runCatching { trainProfileFromDb() }
+        }
+    }
+
+
+    private fun verifyCurrentBuffer(): VerificationResult? {
+        val profile = currentProfile ?: return null
         val result = runCatching {
             verificationManager.verify(attemptBuffer, profile)
         }.getOrNull()
 
-        if (result != null) {
-            _verificationResultFlow.value = result
-        }
+        _verificationResultFlow.value = result
+        return result
     }
 
     override suspend fun trainProfileFromDb() {
@@ -93,9 +137,8 @@ class BiometricService(
         verificationManager.setStrategy(strategy)
     }
 
-    override fun getCollectedSamples(): Flow<List<BiometricSample>> {
-        return biometricRepository.getAllSamples()
-    }
+    override fun getCollectedSamples(): Flow<List<BiometricSample>> =
+        biometricRepository.getAllSamples()
 
     override fun calculateTransitionMatrices(
         data: List<BiometricSample>
