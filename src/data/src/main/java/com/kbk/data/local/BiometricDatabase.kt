@@ -7,7 +7,7 @@ import com.kbk.data.local.entity.BiometricSampleEntity
 
 @Database(
     entities = [BiometricSampleEntity::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class BiometricDatabase : RoomDatabase() {
