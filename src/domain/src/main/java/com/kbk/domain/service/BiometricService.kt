@@ -2,18 +2,38 @@ package com.kbk.domain.service
 
 import com.kbk.domain.irepository.IBiometricRepository
 import com.kbk.domain.irepository.IMotionRepository
+import com.kbk.domain.isdk.IKeystrokeVerificationManager
+import com.kbk.domain.isdk.VerificationStrategy
 import com.kbk.domain.iservice.IBiometricService
 import com.kbk.domain.models.BiometricSample
 import com.kbk.domain.models.TouchData
+import com.kbk.domain.models.sdk.BiometricProfile
+import com.kbk.domain.models.sdk.VerificationResult
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 
 class BiometricService(
     private val biometricRepository: IBiometricRepository,
-    private val motionRepository: IMotionRepository
+    private val motionRepository: IMotionRepository,
+    private val verificationManager: IKeystrokeVerificationManager
 ) : IBiometricService {
     private companion object {
         const val MAX_TRANSITION_TIME_MS = 2000L
+        const val ATTEMPT_WINDOW_SIZE = 4
     }
+
+    private val _verificationResultFlow = MutableStateFlow<VerificationResult?>(null)
+    override val verificationResultFlow: StateFlow<VerificationResult?> =
+        _verificationResultFlow.asStateFlow()
+
+    // эталонный профиль владельца
+    private var currentProfile: BiometricProfile? = null
+
+    // буфер текущей попытки ввода
+    private val attemptBuffer = mutableListOf<BiometricSample>()
 
     override fun startBiometricCollection() = motionRepository.startTracking()
     override fun stopBiometricCollection() = motionRepository.stopTracking()
@@ -25,6 +45,34 @@ class BiometricService(
             motionData = currentMotion
         )
         biometricRepository.saveSample(sample)
+
+        if (currentProfile != null) {
+            attemptBuffer.add(sample)
+            if (attemptBuffer.size >= ATTEMPT_WINDOW_SIZE) {
+                verifyCurrentBuffer()
+                attemptBuffer.clear()
+            }
+        }
+    }
+
+    private fun verifyCurrentBuffer() {
+        val profile = currentProfile ?: return
+        val result = runCatching {
+            verificationManager.verify(attemptBuffer, profile)
+        }.getOrNull()
+
+        if (result != null) {
+            _verificationResultFlow.value = result
+        }
+    }
+
+    override suspend fun trainProfileFromDb() {
+        val allSamples = biometricRepository.getAllSamples().first()
+        currentProfile = verificationManager.train(allSamples)
+    }
+
+    override fun setVerificationStrategy(strategy: VerificationStrategy) {
+        verificationManager.setStrategy(strategy)
     }
 
     override fun getCollectedSamples(): Flow<List<BiometricSample>> {

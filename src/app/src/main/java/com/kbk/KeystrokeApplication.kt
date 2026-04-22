@@ -7,8 +7,10 @@ import com.kbk.data.repository.BiometricRepository
 import com.kbk.data.sensors.AndroidMotionRepository
 import com.kbk.domain.irepository.IBiometricRepository
 import com.kbk.domain.irepository.IMotionRepository
+import com.kbk.domain.isdk.IKeystrokeVerificationManager
 import com.kbk.domain.iservice.IBiometricService
 import com.kbk.domain.service.BiometricService
+import com.kbk.keystrokeSdk.ensemble.KeystrokeVerificationManager
 import com.kbk.presentation.di.DependencyProvider
 
 class KeystrokeApplication : Application(), DependencyProvider {
@@ -29,7 +31,11 @@ class KeystrokeApplication : Application(), DependencyProvider {
         BiometricRepository(database.biometricSampleDao())
     }
 
+    private val verificationManager: IKeystrokeVerificationManager by lazy {
+        KeystrokeVerificationManager()
+    }
+
     override val biometricService: IBiometricService by lazy {
-        BiometricService(biometricRepository, motionRepository)
+        BiometricService(biometricRepository, motionRepository, verificationManager)
     }
 }
