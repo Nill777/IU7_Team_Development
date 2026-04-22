@@ -29,4 +29,7 @@ interface BiometricSampleDao {
         )
     """)
     suspend fun cleanupOldSamples(targetKey: String, keepCount: Int)
+
+    @Query("SELECT COUNT(*) FROM biometric_samples")
+    suspend fun getSamplesCount(): Int
 }
