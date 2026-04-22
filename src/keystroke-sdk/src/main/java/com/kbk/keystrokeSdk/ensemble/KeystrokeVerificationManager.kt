@@ -54,30 +54,27 @@ class KeystrokeVerificationManager(
             }
         }
 
-        if (individualResults.isEmpty()) {
-            return VerificationResult("Unknown", isOwner = false, anomalyScore = 999f, confidence = 0f)
+        return when (individualResults.size) {
+            0 -> VerificationResult("Unknown", isOwner = false, anomalyScore = 999f, confidence = 0f)
+            1 -> individualResults.first()
+            else -> calculateEnsembleResult(individualResults)
         }
+    }
 
-        // если стратегия - одиночная модель, возвращаем её результат
-        if (individualResults.size == 1) {
-            return individualResults.first()
-        }
-
+    private fun calculateEnsembleResult(results: List<VerificationResult>): VerificationResult {
         // паттерн ensemble
         // насколько в среднем все модели отклонились
-        val averageAnomaly = individualResults.map { it.anomalyScore }.average().toFloat()
-
+        val averageAnomaly = results.map { it.anomalyScore }.average().toFloat()
         // средняя уверенность моделей
-        val averageConfidence = individualResults.map { it.confidence }.average().toFloat()
-
+        val averageConfidence = results.map { it.confidence }.average().toFloat()
         // Считаем голоса. Сколько моделей сказало "Да, это хозяин"?
-        val positiveVotes = individualResults.count { it.isOwner }
+        val positiveVotes = results.count { it.isOwner }
 
         // если больше половины моделей подтвердили, пускаем
-        val ensembleIsOwner = positiveVotes >= (individualResults.size / 2.0)
+        val ensembleIsOwner = positiveVotes >= results.size / 2.0
 
         return VerificationResult(
-            modelName = "Ensemble (${individualResults.size} models)",
+            modelName = "Ensemble (${results.size} models)",
             isOwner = ensembleIsOwner,
             anomalyScore = averageAnomaly,
             confidence = averageConfidence

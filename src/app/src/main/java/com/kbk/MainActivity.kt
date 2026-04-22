@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
                         DashboardViewModel(biometricService) as T
 
                     modelClass.isAssignableFrom(PlaygroundViewModel::class.java) ->
-                        PlaygroundViewModel() as T
+                        PlaygroundViewModel(biometricService) as T
 
                     modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
                         SettingsViewModel() as T
