@@ -6,4 +6,5 @@ import kotlinx.coroutines.flow.Flow
 interface IBiometricRepository {
     suspend fun saveSample(sample: BiometricSample)
     fun getAllSamples(): Flow<List<BiometricSample>>
+    suspend fun getSamplesCount(): Int
 }

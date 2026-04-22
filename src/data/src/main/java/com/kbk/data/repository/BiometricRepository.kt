@@ -15,8 +15,8 @@ import java.util.concurrent.ConcurrentHashMap
 class BiometricRepository(private val dao: BiometricSampleDao) : IBiometricRepository {
 
     companion object {
-        private const val MAX_RETENTION_PER_KEY = 20
-        private const val CLEANUP_THRESHOLD = 5
+        private const val MAX_RETENTION_PER_KEY = 200
+        private const val CLEANUP_THRESHOLD = 25
         private const val TOTAL_LIMIT_BEFORE_CLEANUP = MAX_RETENTION_PER_KEY + CLEANUP_THRESHOLD
     }
 
@@ -67,4 +67,6 @@ class BiometricRepository(private val dao: BiometricSampleDao) : IBiometricRepos
             list.map { it.toDomain() }
         }
     }
+
+    override suspend fun getSamplesCount(): Int = dao.getSamplesCount()
 }
