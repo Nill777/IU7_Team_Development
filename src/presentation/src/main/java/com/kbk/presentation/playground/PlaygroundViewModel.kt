@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 class PlaygroundViewModel(
     private val biometricService: IBiometricService
 ) : ViewModel() {
-
+    val isVerificationMode = biometricService.isVerificationMode
     private val _attempts = MutableStateFlow<List<VerificationResult>>(emptyList())
     val attempts = _attempts.asStateFlow()
 
