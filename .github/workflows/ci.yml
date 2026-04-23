@@ -4,6 +4,7 @@ on:
   push:
     branches: [ master, develop, 'feature/**' ]
   pull_request:
+    types: [ opened, synchronize, reopened, labeled ]
     branches: [ master, develop ]
 
 jobs:
@@ -66,7 +67,7 @@ jobs:
   llm-review:
     name: AI Code Review
     needs: e2e-tests
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-llm')
     runs-on: self-hosted
     timeout-minutes: 240
     permissions:
