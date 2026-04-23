@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 interface IBiometricService {
     // поток результатов верификации
     val verificationResultFlow: StateFlow<VerificationResult?>
+    val isVerificationMode: StateFlow<Boolean>
 
     fun startBiometricCollection()
     fun stopBiometricCollection()

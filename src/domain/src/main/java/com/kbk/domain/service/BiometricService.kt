@@ -39,6 +39,9 @@ class BiometricService(
     private val _verificationResultFlow = MutableStateFlow<VerificationResult?>(null)
     override val verificationResultFlow: StateFlow<VerificationResult?> =
         _verificationResultFlow.asStateFlow()
+    private val _isVerificationMode = MutableStateFlow(false)
+    override val isVerificationMode: StateFlow<Boolean> = _isVerificationMode.asStateFlow()
+
 
     // эталонный профиль владельца
     private var currentProfile: BiometricProfile? = null
@@ -118,6 +121,7 @@ class BiometricService(
         val trainingSamples = applySlidingWindow(allSamples, TRAINING_WINDOW_SIZE)
 
         currentProfile = verificationManager.train(trainingSamples)
+        _isVerificationMode.value = true
     }
 
     private fun applySlidingWindow(
