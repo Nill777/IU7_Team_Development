@@ -21,6 +21,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
+private fun isRussian(k: String) = k.length == 1 && k.all { it in 'а'..'я' || it == 'ё' }
+private fun isEnglish(k: String) = k.length == 1 && k.all { it in 'a'..'z' }
+
 class BiometricService(
     private val biometricRepository: IBiometricRepository,
     private val motionRepository: IMotionRepository,
@@ -40,12 +43,17 @@ class BiometricService(
 
         // порог объема новых данных для переобучения
         const val EVOLUTION_THRESHOLD = 25
+
+        const val DEFAULT_TIMING_THRESHOLD = 4.0f
+        const val DEFAULT_SPATIAL_THRESHOLD = 5.0f
+        const val DEFAULT_MOTION_THRESHOLD = 6.0f
+
     }
 
     private var globalThresholds = mapOf(
-        "TimingModel" to 4.0f,
-        "SpatialModel" to 5.0f,
-        "MotionModel" to 6.0f
+        "TimingModel" to DEFAULT_TIMING_THRESHOLD,
+        "SpatialModel" to DEFAULT_SPATIAL_THRESHOLD,
+        "MotionModel" to DEFAULT_MOTION_THRESHOLD
     )
 
     private val _verificationResultFlow = MutableStateFlow<VerificationResult?>(null)
@@ -229,7 +237,4 @@ class BiometricService(
             enRawMatrix.mapValues { it.value.average().toFloat() }
         )
     }
-
-    private fun isRussian(k: String) = k.length == 1 && k.all { it in 'а'..'я' || it == 'ё' }
-    private fun isEnglish(k: String) = k.length == 1 && k.all { it in 'a'..'z' }
 }

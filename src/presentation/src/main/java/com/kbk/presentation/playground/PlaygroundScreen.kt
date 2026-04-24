@@ -58,7 +58,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.kbk.domain.models.sdk.VerificationResult
 import com.kbk.presentation.R
 
-
 private const val PLAYGROUND_PADDING_VAL = 8
 private const val PLAYGROUND_SPACING_VAL = 8
 private const val CARD_ELEVATION_VAL = 4
@@ -106,30 +105,7 @@ fun PlaygroundScreen(viewModel: PlaygroundViewModel) {
     val spatialThreshold by viewModel.spatialThreshold.collectAsState()
     val motionThreshold by viewModel.motionThreshold.collectAsState()
 
-    val lifecycleOwner = LocalLifecycleOwner.current
-    val focusManager = LocalFocusManager.current
-
-    // сбрасываем фокус принудительно, когда уходим с экрана,
-    // для продолжения сбора данных
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
-                viewModel.setTestInputFocus(false)
-                focusManager.clearFocus()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-            viewModel.setTestInputFocus(false)
-        }
-    }
-
-    LaunchedEffect(lifecycleOwner) {
-        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-            viewModel.collectPlaygroundSamples()
-        }
-    }
+    PlaygroundLifecycleHandler(viewModel)
 
     Column(
         modifier = Modifier
@@ -165,6 +141,32 @@ fun PlaygroundScreen(viewModel: PlaygroundViewModel) {
                     viewModel.setTestInputFocus(isFocused)
                 }
             )
+        }
+    }
+}
+
+@Composable
+private fun PlaygroundLifecycleHandler(viewModel: PlaygroundViewModel) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val focusManager = LocalFocusManager.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
+                viewModel.setTestInputFocus(false)
+                focusManager.clearFocus()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.setTestInputFocus(false)
+        }
+    }
+
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.collectPlaygroundSamples()
         }
     }
 }
@@ -249,10 +251,7 @@ private fun ModeInfoText(isVerificationMode: Boolean, totalCount: Int, trainedCo
         )
     }
 
-    Text(
-        text = fullText,
-        style = MaterialTheme.typography.titleMedium
-    )
+    Text(text = fullText, style = MaterialTheme.typography.titleMedium)
 }
 
 @Composable
@@ -264,9 +263,7 @@ private fun StatusCard(
 ) {
     Card(
         elevation = CardDefaults.cardElevation(CARD_ELEVATION_VAL.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primary
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
     ) {
         Column(modifier = Modifier.padding(PLAYGROUND_PADDING_VAL.dp)) {
             ModeInfoText(isVerificationMode, totalCount, trainedCount)
@@ -274,9 +271,7 @@ private fun StatusCard(
             Button(
                 onClick = onTrainClick,
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondary
-                )
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
             ) {
                 Text("Рассчитать эталонный профиль")
             }
@@ -294,9 +289,7 @@ private fun SettingsCard(
 ) {
     Card(
         elevation = CardDefaults.cardElevation(CARD_ELEVATION_VAL.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primary
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
     ) {
         Column(modifier = Modifier.padding(PLAYGROUND_PADDING_VAL.dp)) {
             Text("Настройки тестирования", style = MaterialTheme.typography.headlineSmall)
@@ -364,9 +357,7 @@ private fun TestCard(
 ) {
     Card(
         elevation = CardDefaults.cardElevation(CARD_ELEVATION_VAL.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primary
-        )
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
     ) {
         Column(modifier = Modifier.padding(PLAYGROUND_PADDING_VAL.dp)) {
             Text("Тестирование", style = MaterialTheme.typography.headlineSmall)
@@ -406,12 +397,15 @@ private fun TestCard(
     }
 }
 
-@Composable
-private fun DetailedResultCard(results: List<VerificationResult>) {
+private data class ResultCardUiState(
+    val bgColor: Color,
+    val titleColor: Color,
+    val titleText: String
+)
+
+private fun getResultCardUiState(results: List<VerificationResult>): ResultCardUiState {
     val isEmpty = results.isEmpty()
     val ensemble = results.find { it.modelName.startsWith("Ensemble") }
-    val models = results.filter { !it.modelName.startsWith("Ensemble") }
-
     val isOwner = ensemble?.isOwner == true
 
     val bgColor = when {
@@ -430,21 +424,29 @@ private fun DetailedResultCard(results: List<VerificationResult>) {
         else -> "взлом"
     }
 
+    return ResultCardUiState(bgColor, titleColor, titleText)
+}
+
+@Composable
+private fun DetailedResultCard(results: List<VerificationResult>) {
+    val uiState = getResultCardUiState(results)
+    val models = results.filter { !it.modelName.startsWith("Ensemble") }
+
     Card(
         elevation = CardDefaults.cardElevation(CARD_ELEVATION_VAL.dp),
-        colors = CardDefaults.cardColors(containerColor = bgColor)
+        colors = CardDefaults.cardColors(containerColor = uiState.bgColor)
     ) {
         Column(modifier = Modifier.padding(CARD_INNER_PADDING_VAL.dp)) {
             Row {
                 Text(
                     text = "Итог ансамбля:",
-                    color = titleColor,
+                    color = uiState.titleColor,
                     style = MaterialTheme.typography.titleMedium
                 )
                 Spacer(Modifier.weight(1f))
                 Text(
-                    text = titleText,
-                    color = titleColor,
+                    text = uiState.titleText,
+                    color = uiState.titleColor,
                     style = MaterialTheme.typography.titleMedium
                 )
             }
