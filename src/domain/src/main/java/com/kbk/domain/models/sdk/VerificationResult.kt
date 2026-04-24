@@ -7,5 +7,6 @@ data class VerificationResult(
     val modelName: String,
     val isOwner: Boolean,
     val anomalyScore: Float, // среднее расстояние Махаланобиса
-    val confidence: Float    // степень уверенности алгоритма
+    val confidence: Float,   // степень уверенности алгоритма
+    val thresholdUsed: Float = 0f // порог для принятия решения
 )
