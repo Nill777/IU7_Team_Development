@@ -24,5 +24,9 @@ interface IKeystrokeVerificationManager {
     /**
      * Оценивает попытку на основе выбранной стратегии
      */
-    fun verify(attempt: List<BiometricSample>, profile: BiometricProfile): VerificationResult
+    fun verify(
+        attempt: List<BiometricSample>,
+        profile: BiometricProfile,
+        thresholds: Map<String, Float>
+    ): List<VerificationResult>
 }
