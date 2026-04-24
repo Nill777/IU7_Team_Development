@@ -9,11 +9,17 @@ import com.kbk.domain.models.BiometricSample
 import com.kbk.domain.models.TouchData
 import com.kbk.domain.models.sdk.BiometricProfile
 import com.kbk.domain.models.sdk.VerificationResult
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 
 class BiometricService(
     private val biometricRepository: IBiometricRepository,
@@ -36,12 +42,29 @@ class BiometricService(
         const val EVOLUTION_THRESHOLD = 25
     }
 
+    private var globalThresholds = mapOf(
+        "TimingModel" to 4.0f,
+        "SpatialModel" to 5.0f,
+        "MotionModel" to 6.0f
+    )
+
     private val _verificationResultFlow = MutableStateFlow<VerificationResult?>(null)
     override val verificationResultFlow: StateFlow<VerificationResult?> =
         _verificationResultFlow.asStateFlow()
+
     private val _isVerificationMode = MutableStateFlow(false)
     override val isVerificationMode: StateFlow<Boolean> = _isVerificationMode.asStateFlow()
 
+    private val _totalSamplesCount = MutableStateFlow(0)
+    override val totalSamplesCount: StateFlow<Int> = _totalSamplesCount.asStateFlow()
+
+    private val _trainedSamplesCount = MutableStateFlow(0)
+    override val trainedSamplesCount: StateFlow<Int> = _trainedSamplesCount.asStateFlow()
+
+    private val _playgroundSampleFlow =
+        MutableSharedFlow<BiometricSample>(extraBufferCapacity = 100)
+    override val playgroundSampleFlow: SharedFlow<BiometricSample> =
+        _playgroundSampleFlow.asSharedFlow()
 
     // эталонный профиль владельца
     private var currentProfile: BiometricProfile? = null
@@ -51,6 +74,21 @@ class BiometricService(
 
     // счетчик успешно верифицированных и сохраненных записей с момента последнего обучения
     private var samplesAddedSinceLastTrain = 0
+    private var isTestInputMode = false
+
+    init {
+        CoroutineScope(Dispatchers.IO).launch {
+            _totalSamplesCount.value = biometricRepository.getSamplesCount()
+        }
+    }
+
+    override fun updateGlobalThresholds(thresholds: Map<String, Float>) {
+        globalThresholds = thresholds
+    }
+
+    override fun setTestInputMode(isActive: Boolean) {
+        isTestInputMode = isActive
+    }
 
     override fun startBiometricCollection() = motionRepository.startTracking()
     override fun stopBiometricCollection() = motionRepository.stopTracking()
@@ -61,6 +99,15 @@ class BiometricService(
             touchData = touch,
             motionData = currentMotion
         )
+
+        // в Playground, чтобы мог отрисовать
+        _playgroundSampleFlow.tryEmit(sample)
+
+        // тестовый ввод не сохраненяем в БД
+        if (isTestInputMode) {
+            return
+        }
+        _totalSamplesCount.value += 1
 
         // режим сбора данных
         if (currentProfile == null) {
@@ -75,8 +122,16 @@ class BiometricService(
     private suspend fun processVerificationStep(sample: BiometricSample) {
         attemptBuffer.add(sample)
         if (attemptBuffer.size < ATTEMPT_WINDOW_SIZE) return
-        val result = verifyCurrentBuffer()
-        if (result?.isOwner == true) {
+
+        val results = runCatching {
+            verificationManager.verify(attemptBuffer, currentProfile!!, globalThresholds)
+        }.getOrNull()
+
+        val ensembleResult =
+            results?.find { it.modelName.startsWith("Ensemble") } ?: results?.firstOrNull()
+        _verificationResultFlow.value = ensembleResult
+
+        if (ensembleResult?.isOwner == true) {
             handleSuccessfulVerification()
         }
 
@@ -103,17 +158,6 @@ class BiometricService(
         }
     }
 
-
-    private fun verifyCurrentBuffer(): VerificationResult? {
-        val profile = currentProfile ?: return null
-        val result = runCatching {
-            verificationManager.verify(attemptBuffer, profile)
-        }.getOrNull()
-
-        _verificationResultFlow.value = result
-        return result
-    }
-
     override suspend fun trainProfileFromDb() {
         val allSamples = biometricRepository.getAllSamples().first()
 
@@ -121,7 +165,18 @@ class BiometricService(
         val trainingSamples = applySlidingWindow(allSamples, TRAINING_WINDOW_SIZE)
 
         currentProfile = verificationManager.train(trainingSamples)
+        _trainedSamplesCount.value = trainingSamples.size
         _isVerificationMode.value = true
+    }
+
+    override fun verifyForPlayground(
+        attempt: List<BiometricSample>,
+        thresholds: Map<String, Float>
+    ): List<VerificationResult>? {
+        val profile = currentProfile ?: return null
+        return runCatching {
+            verificationManager.verify(attempt, profile, thresholds)
+        }.getOrNull()
     }
 
     private fun applySlidingWindow(
@@ -156,7 +211,6 @@ class BiometricService(
             val to = sortedData[i + 1]
             val flightTime = to.touchData.flightTime
 
-            // игнорируем переходы дольше 2000 мс
             if (to.motionData.timestamp - from.motionData.timestamp < MAX_TRANSITION_TIME_MS &&
                 flightTime < MAX_TRANSITION_TIME_MS
             ) {
