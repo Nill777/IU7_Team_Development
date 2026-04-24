@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -91,7 +92,7 @@ fun RadarChart(
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text(title, style = MaterialTheme.typography.titleMedium)
 
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
             val canvasWidthPx = constraints.maxWidth.toFloat()
