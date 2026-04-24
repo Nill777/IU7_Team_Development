@@ -35,7 +35,11 @@ class KeystrokeVerificationManager(
         return BiometricProfile(modelProfiles = profilesMap)
     }
 
-    override fun verify(attempt: List<BiometricSample>, profile: BiometricProfile): VerificationResult {
+    override fun verify(
+        attempt: List<BiometricSample>,
+        profile: BiometricProfile,
+        thresholds: Map<String, Float>
+    ): List<VerificationResult> {
         // паттерн Strategy
         val activeModels = when (currentStrategy) {
             VerificationStrategy.ENSEMBLE -> allModels
@@ -47,37 +51,32 @@ class KeystrokeVerificationManager(
         // прогоняем данные через активные модели
         val individualResults = activeModels.mapNotNull { model ->
             val specificModelProfile = profile.modelProfiles[model.modelName]
+            val threshold = thresholds[model.modelName] ?: 5.0f
             if (specificModelProfile != null) {
-                model.verify(attempt, specificModelProfile)
-            } else {
-                null
-            }
+                model.verify(attempt, specificModelProfile, threshold)
+            } else null
         }
 
-        return when (individualResults.size) {
-            0 -> VerificationResult("Unknown", isOwner = false, anomalyScore = 999f, confidence = 0f)
-            1 -> individualResults.first()
-            else -> calculateEnsembleResult(individualResults)
+        if (individualResults.isEmpty()) {
+            return listOf(VerificationResult("Unknown", false, 999f, 0f, 0f))
         }
-    }
 
-    private fun calculateEnsembleResult(results: List<VerificationResult>): VerificationResult {
-        // паттерн ensemble
-        // насколько в среднем все модели отклонились
-        val averageAnomaly = results.map { it.anomalyScore }.average().toFloat()
-        // средняя уверенность моделей
-        val averageConfidence = results.map { it.confidence }.average().toFloat()
-        // Считаем голоса. Сколько моделей сказало "Да, это хозяин"?
-        val positiveVotes = results.count { it.isOwner }
+        if (individualResults.size == 1) return individualResults
 
+        val averageAnomaly = individualResults.map { it.anomalyScore }.average().toFloat()
+        val averageConfidence = individualResults.map { it.confidence }.average().toFloat()
+        val positiveVotes = individualResults.count { it.isOwner }
         // если больше половины моделей подтвердили, пускаем
-        val ensembleIsOwner = positiveVotes >= results.size / 2.0
+        val ensembleIsOwner = positiveVotes >= (individualResults.size / 2.0)
 
-        return VerificationResult(
-            modelName = "Ensemble (${results.size} models)",
+        val ensembleResult = VerificationResult(
+            modelName = "Ensemble",
             isOwner = ensembleIsOwner,
             anomalyScore = averageAnomaly,
-            confidence = averageConfidence
+            confidence = averageConfidence,
+            thresholdUsed = 0f // у ансамбля нет единого порога
         )
+
+        return individualResults + ensembleResult
     }
 }
