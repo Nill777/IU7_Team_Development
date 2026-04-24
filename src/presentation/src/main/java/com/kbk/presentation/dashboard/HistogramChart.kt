@@ -83,7 +83,7 @@ fun HistogramChart(
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(text = title, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        Text(text = title, style = MaterialTheme.typography.titleMedium)
         Text(
             text = "μ = ${"%.2f".format(stats.mean)}, σ = ${"%.2f".format(stats.stdDev)}",
             fontSize = 12.sp,
