@@ -16,85 +16,155 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.repeatOnLifecycle
 import com.kbk.domain.models.sdk.VerificationResult
 import com.kbk.presentation.R
 
-private const val COLOR_GREEN_BG = 0xFFE8F5E9
-private const val COLOR_RED_BG = 0xFFFFEBEE
-private const val COLOR_GREEN_TEXT = 0xFF2E7D32
-private const val COLOR_RED_TEXT = 0xFFC62828
 
-// Константы для анимации и лого (чтобы не было ошибок MagicNumber)
+private const val PLAYGROUND_PADDING_VAL = 8
+private const val PLAYGROUND_SPACING_VAL = 8
+private const val CARD_ELEVATION_VAL = 4
+private const val CARD_INNER_PADDING_VAL = 16
+private const val SPACER_TOPBAR_VAL = 16
+
 private const val LOGO_SIZE_DP = 56
 private const val GLOW_ANIM_DURATION = 2000
 private const val GLOW_MIN_ALPHA = 0.1f
 private const val GLOW_MAX_ALPHA = 0.85f
 private const val ORB_CENTER_Y_RATIO = 0.56f
 private const val ORB_RADIUS_RATIO = 0.20f
+private const val HALF_DIVISOR = 2f
+
 private const val COLOR_CYAN_GLOW = 0xFF04FBFF
-private const val COLOR_MODE_COLLECTION = 0xFFE65100
+private const val COLOR_MODE_COLLECTION = 0xFFFFA500
+private const val COLOR_MODE_VERIFICATION = 0xFF00FF00
+private const val COLOR_GREEN_BG = 0xFFE8F5E9
+private const val COLOR_RED_BG = 0xFFFFEBEE
+private const val COLOR_GREEN_TEXT = 0xFF2E7D32
+private const val COLOR_RED_TEXT = 0xFFC62828
+private const val COLOR_GREY_BG = 0xFF696969
+private const val COLOR_GREY_ONBG = 0xFFA9A9A9
+private const val COLOR_GREY_INDICATOR = 0xFF808080
+
+private const val SLIDER_MIN_VAL = 0f
+private const val SLIDER_MAX_VAL = 10f
+private const val BATCH_MIN_VAL = 1f
+private const val BATCH_MAX_VAL = 20f
+private const val BATCH_STEPS = 18
+
+private const val FIELD_MIN_HEIGHT = 56
+private const val FIELD_MAX_HEIGHT = 150
+private const val FIELD_MAX_LINES = 5
 
 @Composable
 fun PlaygroundScreen(viewModel: PlaygroundViewModel) {
-    val attempts by viewModel.attempts.collectAsState()
-    val message by viewModel.message.collectAsState()
     val isVerificationMode by viewModel.isVerificationMode.collectAsState()
+    val totalCount by viewModel.totalSamplesCount.collectAsState()
+    val trainedCount by viewModel.trainedSamplesCount.collectAsState()
+    val batchSize by viewModel.batchSize.collectAsState()
+    val testText by viewModel.testText.collectAsState()
+    val latestResults by viewModel.latestResults.collectAsState()
+    val timingThreshold by viewModel.timingThreshold.collectAsState()
+    val spatialThreshold by viewModel.spatialThreshold.collectAsState()
+    val motionThreshold by viewModel.motionThreshold.collectAsState()
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val focusManager = LocalFocusManager.current
+
+    // сбрасываем фокус принудительно, когда уходим с экрана,
+    // для продолжения сбора данных
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) {
+                viewModel.setTestInputFocus(false)
+                focusManager.clearFocus()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.setTestInputFocus(false)
+        }
+    }
+
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            viewModel.collectPlaygroundSamples()
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .verticalScroll(rememberScrollState())
+            .padding(PLAYGROUND_PADDING_VAL.dp)
     ) {
         PlaygroundTopBar(isVerificationMode)
-        Spacer(Modifier.height(8.dp))
-
-        ModeInfoText(isVerificationMode)
-        Spacer(Modifier.height(16.dp))
-
-        Button(
-            onClick = { viewModel.trainModel() },
-            modifier = Modifier.fillMaxWidth()
+        Spacer(Modifier.height(PLAYGROUND_PADDING_VAL.dp))
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(PLAYGROUND_SPACING_VAL.dp)
         ) {
-            Text("Обучить эталонный профиль")
-        }
-
-        if (message.isNotEmpty()) {
-            Spacer(Modifier.height(8.dp))
-            val msgColor =
-                if (message.startsWith("❌")) Color.Red else MaterialTheme.colorScheme.onBackground
-            Text(message, color = msgColor, fontSize = 14.sp)
-        }
-
-        Spacer(Modifier.height(24.dp))
-        Text("Лента верификаций:", fontWeight = FontWeight.Bold)
-        Spacer(Modifier.height(8.dp))
-
-        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(attempts) { result ->
-                ResultCard(result)
-            }
+            StatusCard(
+                isVerificationMode = isVerificationMode,
+                totalCount = totalCount,
+                trainedCount = trainedCount,
+                onTrainClick = { viewModel.trainModel() }
+            )
+            SettingsCard(
+                batchSize = batchSize,
+                timingThreshold = timingThreshold,
+                spatialThreshold = spatialThreshold,
+                motionThreshold = motionThreshold,
+                viewModel = viewModel
+            )
+            TestCard(
+                isVerificationMode = isVerificationMode,
+                testText = testText,
+                latestResults = latestResults,
+                onTextChange = { viewModel.updateTestText(it) },
+                onFocusChange = { isFocused ->
+                    viewModel.setTestInputFocus(isFocused)
+                }
+            )
         }
     }
 }
@@ -109,8 +179,8 @@ private fun PlaygroundTopBar(isVerificationMode: Boolean) {
             isGlowing = isVerificationMode,
             modifier = Modifier.size(LOGO_SIZE_DP.dp)
         )
-        Spacer(Modifier.width(16.dp))
-        Text("Playground (Тест Защиты)", style = MaterialTheme.typography.headlineMedium)
+        Spacer(Modifier.width(SPACER_TOPBAR_VAL.dp))
+        Text("Тест защиты", style = MaterialTheme.typography.headlineMedium)
     }
 }
 
@@ -136,7 +206,7 @@ private fun BatLogoWithGlow(isGlowing: Boolean, modifier: Modifier = Modifier) {
             )
 
             Canvas(modifier = Modifier.fillMaxSize()) {
-                val orbCenter = Offset(size.width / 2f, size.height * ORB_CENTER_Y_RATIO)
+                val orbCenter = Offset(size.width / HALF_DIVISOR, size.height * ORB_CENTER_Y_RATIO)
                 val radius = size.width * ORB_RADIUS_RATIO
 
                 drawCircle(
@@ -157,50 +227,258 @@ private fun BatLogoWithGlow(isGlowing: Boolean, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ModeInfoText(isVerificationMode: Boolean) {
-    val modeText = if (isVerificationMode) {
-        "Режим: Активная защита\n(Непрерывная верификация и эволюция профиля)"
-    } else {
-        "Режим: Сбор данных\n(Ожидание накопления базы для первой тренировки)"
+private fun ModeInfoText(isVerificationMode: Boolean, totalCount: Int, trainedCount: Int) {
+    val fullText = buildAnnotatedString {
+        append("Режим: ")
+        withStyle(
+            SpanStyle(
+                color = if (isVerificationMode) Color(COLOR_MODE_VERIFICATION) else Color(
+                    COLOR_MODE_COLLECTION
+                ),
+                fontWeight = FontWeight.Bold
+            )
+        ) {
+            append(if (isVerificationMode) "Активная защита" else "Сбор данных")
+        }
+        append(
+            if (isVerificationMode) {
+                "\nОбучено на: $trainedCount записях\nВсего в базе: $totalCount записей"
+            } else {
+                "\nСобрано: $totalCount записей"
+            }
+        )
     }
-    val modeColor =
-        if (isVerificationMode) Color(COLOR_GREEN_TEXT) else Color(COLOR_MODE_COLLECTION)
 
     Text(
-        text = modeText,
-        color = modeColor,
-        fontSize = 14.sp,
-        fontWeight = FontWeight.SemiBold
+        text = fullText,
+        style = MaterialTheme.typography.titleMedium
     )
 }
 
 @Composable
-private fun ResultCard(result: VerificationResult) {
-    val bgColor = if (result.isOwner) Color(COLOR_GREEN_BG) else Color(COLOR_RED_BG)
-    val statusText = if (result.isOwner) "Владелец" else "ЗЛОУМЫШЛЕННИК!"
-    val statusColor = if (result.isOwner) Color(COLOR_GREEN_TEXT) else Color(COLOR_RED_TEXT)
+private fun StatusCard(
+    isVerificationMode: Boolean,
+    totalCount: Int,
+    trainedCount: Int,
+    onTrainClick: () -> Unit
+) {
+    Card(
+        elevation = CardDefaults.cardElevation(CARD_ELEVATION_VAL.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primary
+        )
+    ) {
+        Column(modifier = Modifier.padding(PLAYGROUND_PADDING_VAL.dp)) {
+            ModeInfoText(isVerificationMode, totalCount, trainedCount)
+            Spacer(Modifier.height(PLAYGROUND_PADDING_VAL.dp))
+            Button(
+                onClick = onTrainClick,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondary
+                )
+            ) {
+                Text("Рассчитать эталонный профиль")
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsCard(
+    batchSize: Int,
+    timingThreshold: Float,
+    spatialThreshold: Float,
+    motionThreshold: Float,
+    viewModel: PlaygroundViewModel
+) {
+    Card(
+        elevation = CardDefaults.cardElevation(CARD_ELEVATION_VAL.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primary
+        )
+    ) {
+        Column(modifier = Modifier.padding(PLAYGROUND_PADDING_VAL.dp)) {
+            Text("Настройки тестирования", style = MaterialTheme.typography.headlineSmall)
+            Spacer(Modifier.height(PLAYGROUND_PADDING_VAL.dp))
+            Text("Батч верификации: $batchSize", style = MaterialTheme.typography.titleMedium)
+            Slider(
+                value = batchSize.toFloat(),
+                onValueChange = { viewModel.updateBatchSize(it) },
+                valueRange = BATCH_MIN_VAL..BATCH_MAX_VAL,
+                steps = BATCH_STEPS,
+                colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colorScheme.onSecondary,
+                    activeTrackColor = MaterialTheme.colorScheme.onSecondary,
+                    activeTickColor = MaterialTheme.colorScheme.secondary,
+                    inactiveTrackColor = MaterialTheme.colorScheme.secondary,
+                    inactiveTickColor = MaterialTheme.colorScheme.onSecondary
+                )
+            )
+
+            Spacer(Modifier.height(PLAYGROUND_PADDING_VAL.dp))
+            Text("Тестовые пороги аномальности:", style = MaterialTheme.typography.titleMedium)
+            HorizontalDivider(color = MaterialTheme.colorScheme.onBackground)
+            Spacer(Modifier.height(PLAYGROUND_PADDING_VAL.dp))
+
+            ThresholdSlider(
+                "TimingModel",
+                timingThreshold
+            ) { viewModel.updateTimingThreshold(it) }
+            ThresholdSlider(
+                "SpatialModel",
+                spatialThreshold
+            ) { viewModel.updateSpatialThreshold(it) }
+            ThresholdSlider(
+                "MotionModel",
+                motionThreshold
+            ) { viewModel.updateMotionThreshold(it) }
+        }
+    }
+}
+
+@Composable
+private fun ThresholdSlider(name: String, value: Float, onValueChange: (Float) -> Unit) {
+    Text("$name: ${"%.1f".format(value)} \u03C3", style = MaterialTheme.typography.titleMedium)
+    Slider(
+        value = value,
+        onValueChange = onValueChange,
+        valueRange = SLIDER_MIN_VAL..SLIDER_MAX_VAL,
+        colors = SliderDefaults.colors(
+            thumbColor = MaterialTheme.colorScheme.onSecondary,
+            activeTrackColor = MaterialTheme.colorScheme.onSecondary,
+            activeTickColor = MaterialTheme.colorScheme.secondary,
+            inactiveTrackColor = MaterialTheme.colorScheme.secondary,
+            inactiveTickColor = MaterialTheme.colorScheme.onSecondary
+        )
+    )
+}
+
+@Composable
+private fun TestCard(
+    isVerificationMode: Boolean,
+    testText: String,
+    latestResults: List<VerificationResult>,
+    onTextChange: (String) -> Unit,
+    onFocusChange: (Boolean) -> Unit
+) {
+    Card(
+        elevation = CardDefaults.cardElevation(CARD_ELEVATION_VAL.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primary
+        )
+    ) {
+        Column(modifier = Modifier.padding(PLAYGROUND_PADDING_VAL.dp)) {
+            Text("Тестирование", style = MaterialTheme.typography.headlineSmall)
+            Spacer(Modifier.height(PLAYGROUND_PADDING_VAL.dp))
+
+            DetailedResultCard(latestResults)
+            Spacer(Modifier.height(PLAYGROUND_PADDING_VAL.dp))
+
+            OutlinedTextField(
+                value = testText,
+                onValueChange = onTextChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = FIELD_MIN_HEIGHT.dp, max = FIELD_MAX_HEIGHT.dp)
+                    .onFocusChanged { state -> onFocusChange(state.isFocused) },
+                maxLines = FIELD_MAX_LINES,
+                enabled = isVerificationMode,
+                label = { Text("Поле тестового ввода") },
+                shape = MaterialTheme.shapes.medium,
+                colors = TextFieldDefaults.colors(
+                    focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                    disabledTextColor = Color(COLOR_GREY_ONBG),
+                    focusedContainerColor = MaterialTheme.colorScheme.background,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                    disabledContainerColor = Color(COLOR_GREY_BG),
+                    cursorColor = MaterialTheme.colorScheme.onBackground,
+                    focusedIndicatorColor = MaterialTheme.colorScheme.onSecondary,
+                    unfocusedIndicatorColor = MaterialTheme.colorScheme.onBackground,
+                    disabledIndicatorColor = Color(COLOR_GREY_INDICATOR),
+                    focusedLabelColor = MaterialTheme.colorScheme.onSecondary,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onBackground,
+                    disabledLabelColor = Color(COLOR_GREY_ONBG)
+                )
+            )
+        }
+    }
+}
+
+@Composable
+private fun DetailedResultCard(results: List<VerificationResult>) {
+    val isEmpty = results.isEmpty()
+    val ensemble = results.find { it.modelName.startsWith("Ensemble") }
+    val models = results.filter { !it.modelName.startsWith("Ensemble") }
+
+    val isOwner = ensemble?.isOwner == true
+
+    val bgColor = when {
+        isEmpty -> Color(COLOR_GREY_BG)
+        isOwner -> Color(COLOR_GREEN_BG)
+        else -> Color(COLOR_RED_BG)
+    }
+    val titleColor = when {
+        isEmpty -> Color(COLOR_GREY_ONBG)
+        isOwner -> Color(COLOR_GREEN_TEXT)
+        else -> Color(COLOR_RED_TEXT)
+    }
+    val titleText = when {
+        isEmpty -> ""
+        isOwner -> "владелец"
+        else -> "взлом"
+    }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(CARD_ELEVATION_VAL.dp),
         colors = CardDefaults.cardColors(containerColor = bgColor)
     ) {
-        Row(
-            modifier = Modifier
-                .padding(16.dp)
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
+        Column(modifier = Modifier.padding(CARD_INNER_PADDING_VAL.dp)) {
+            Row {
                 Text(
-                    statusText,
-                    color = statusColor,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+                    text = "Итог ансамбля:",
+                    color = titleColor,
+                    style = MaterialTheme.typography.titleMedium
                 )
-                Text("Аномальность: ${"%.2f".format(result.anomalyScore)}", fontSize = 14.sp)
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = titleText,
+                    color = titleColor,
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
-            Text(result.modelName, color = Color.Gray, fontSize = 12.sp)
+            HorizontalDivider(color = Color(COLOR_GREY_INDICATOR))
+            Spacer(Modifier.height(PLAYGROUND_PADDING_VAL.dp))
+
+            val modelNames = listOf("TimingModel", "SpatialModel", "MotionModel")
+
+            modelNames.forEach { modelName ->
+                val res = models.find { it.modelName == modelName }
+                if (res != null) {
+                    val statusText = if (res.isOwner) "✅" else "❌"
+                    Row {
+                        Text(
+                            text = "${res.modelName}: ${"%.1f".format(res.anomalyScore)} / ${
+                                "%.1f".format(
+                                    res.thresholdUsed
+                                )
+                            }",
+                            color = Color.Black
+                        )
+                        Spacer(Modifier.weight(1f))
+                        Text(
+                            text = statusText,
+                            color = Color.Black
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "$modelName: -",
+                        color = Color(COLOR_GREY_ONBG)
+                    )
+                }
+            }
         }
     }
 }
