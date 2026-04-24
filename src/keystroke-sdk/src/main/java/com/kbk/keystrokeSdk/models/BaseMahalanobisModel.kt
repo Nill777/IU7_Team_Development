@@ -15,7 +15,6 @@ abstract class BaseMahalanobisModel : IVerificationModel {
     companion object {
         private const val MIN_SAMPLES_REQUIRED = 10
         private const val MIN_KEY_SAMPLES = 3
-        private const val ANOMALY_THRESHOLD = 5.0f
         private const val DEFAULT_CONFIDENCE = 1.0f
         private const val ZERO_CONFIDENCE = 0.0f
         private const val ZERO_SCORE = 0.0f
@@ -49,7 +48,11 @@ abstract class BaseMahalanobisModel : IVerificationModel {
         return ModelProfile(modelName = this.modelName, keyStats = statsMap)
     }
 
-    override fun verify(attempt: List<BiometricSample>, profile: ModelProfile): VerificationResult {
+    override fun verify(
+        attempt: List<BiometricSample>,
+        profile: ModelProfile,
+        threshold: Float
+    ): VerificationResult {
         var totalDistance = 0.0
         var evaluatedKeysCount = 0
 
@@ -69,18 +72,20 @@ abstract class BaseMahalanobisModel : IVerificationModel {
                 modelName = modelName,
                 isOwner = true,
                 anomalyScore = ZERO_SCORE,
-                confidence = ZERO_CONFIDENCE
+                confidence = ZERO_CONFIDENCE,
+                thresholdUsed = threshold
             )
         }
 
         val avgDistance = (totalDistance / evaluatedKeysCount).toFloat()
-        val isOwner = avgDistance < ANOMALY_THRESHOLD
+        val isOwner = avgDistance < threshold
 
         return VerificationResult(
             modelName = modelName,
             isOwner = isOwner,
             anomalyScore = avgDistance,
-            confidence = DEFAULT_CONFIDENCE
+            confidence = DEFAULT_CONFIDENCE,
+            thresholdUsed = threshold
         )
     }
 }
