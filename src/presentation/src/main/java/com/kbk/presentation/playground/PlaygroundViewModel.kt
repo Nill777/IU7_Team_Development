@@ -13,11 +13,18 @@ import kotlinx.coroutines.launch
 class PlaygroundViewModel(
     private val biometricService: IBiometricService
 ) : ViewModel() {
+    companion object {
+        private const val DEFAULT_BATCH_SIZE = 4
+        private const val DEFAULT_TIMING_THRESHOLD = 4.0f
+        private const val DEFAULT_SPATIAL_THRESHOLD = 5.0f
+        private const val DEFAULT_MOTION_THRESHOLD = 6.0f
+    }
+
     val isVerificationMode = biometricService.isVerificationMode
     val totalSamplesCount = biometricService.totalSamplesCount
     val trainedSamplesCount = biometricService.trainedSamplesCount
 
-    val batchSize = MutableStateFlow(4)
+    val batchSize = MutableStateFlow(DEFAULT_BATCH_SIZE)
     val testText = MutableStateFlow("")
 
     private val _latestResults = MutableStateFlow<List<VerificationResult>>(emptyList())
@@ -25,9 +32,9 @@ class PlaygroundViewModel(
 
     private val localBuffer = mutableListOf<BiometricSample>()
 
-    val timingThreshold = MutableStateFlow(4.0f)
-    val spatialThreshold = MutableStateFlow(5.0f)
-    val motionThreshold = MutableStateFlow(6.0f)
+    val timingThreshold = MutableStateFlow(DEFAULT_TIMING_THRESHOLD)
+    val spatialThreshold = MutableStateFlow(DEFAULT_SPATIAL_THRESHOLD)
+    val motionThreshold = MutableStateFlow(DEFAULT_MOTION_THRESHOLD)
 
     suspend fun collectPlaygroundSamples() {
         biometricService.playgroundSampleFlow.collect { sample ->
@@ -88,9 +95,9 @@ class PlaygroundViewModel(
             try {
                 biometricService.trainProfileFromDb()
             } catch (e: IllegalArgumentException) {
-                Log.e("PlaygroundViewModel", "$e.message")
+                Log.e("PlaygroundViewModel", "${e.message}")
             } catch (e: IllegalStateException) {
-                Log.e("PlaygroundViewModel", "ошибка математического ядра: $e.message")
+                Log.e("PlaygroundViewModel", "Ошибка математического ядра: ${e.message}")
             }
         }
     }

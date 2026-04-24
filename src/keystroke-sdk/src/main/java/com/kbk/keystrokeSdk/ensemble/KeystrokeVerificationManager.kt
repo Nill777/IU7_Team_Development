@@ -18,6 +18,13 @@ class KeystrokeVerificationManager(
     private val spatialModel: IVerificationModel = SpatialModel(),
     private val motionModel: IVerificationModel = MotionModel()
 ) : IKeystrokeVerificationManager {
+    private companion object {
+        const val DEFAULT_THRESHOLD = 5.0f
+        const val ERROR_ANOMALY_SCORE = 999f
+        const val ZERO_VAL = 0f
+        const val ENSEMBLE_DIVISOR = 2.0
+        const val SINGLE_RESULT_SIZE = 1
+    }
 
     private var currentStrategy: VerificationStrategy = VerificationStrategy.ENSEMBLE
     private val allModels = listOf(timingModel, spatialModel, motionModel)
@@ -41,42 +48,52 @@ class KeystrokeVerificationManager(
         thresholds: Map<String, Float>
     ): List<VerificationResult> {
         // паттерн Strategy
-        val activeModels = when (currentStrategy) {
-            VerificationStrategy.ENSEMBLE -> allModels
-            VerificationStrategy.TIMING_ONLY -> listOf(timingModel)
-            VerificationStrategy.SPATIAL_ONLY -> listOf(spatialModel)
-            VerificationStrategy.MOTION_ONLY -> listOf(motionModel)
-        }
+        val activeModels = getModelsByStrategy()
 
         // прогоняем данные через активные модели
         val individualResults = activeModels.mapNotNull { model ->
             val specificModelProfile = profile.modelProfiles[model.modelName]
-            val threshold = thresholds[model.modelName] ?: 5.0f
-            if (specificModelProfile != null) {
-                model.verify(attempt, specificModelProfile, threshold)
-            } else null
+            val threshold = thresholds[model.modelName] ?: DEFAULT_THRESHOLD
+            specificModelProfile?.let { model.verify(attempt, it, threshold) }
         }
-
-        if (individualResults.isEmpty()) {
-            return listOf(VerificationResult("Unknown", false, 999f, 0f, 0f))
+        return when {
+            individualResults.isEmpty() -> listOf(
+                VerificationResult(
+                    modelName = "Unknown",
+                    isOwner = false,
+                    anomalyScore = ERROR_ANOMALY_SCORE,
+                    confidence = ZERO_VAL,
+                    thresholdUsed = ZERO_VAL
+                )
+            )
+            individualResults.size == SINGLE_RESULT_SIZE -> individualResults
+            else -> {
+                val ensembleResult = calculateEnsemble(individualResults)
+                individualResults + ensembleResult
+            }
         }
+    }
 
-        if (individualResults.size == 1) return individualResults
+    private fun getModelsByStrategy(): List<IVerificationModel> = when (currentStrategy) {
+        VerificationStrategy.ENSEMBLE -> allModels
+        VerificationStrategy.TIMING_ONLY -> listOf(timingModel)
+        VerificationStrategy.SPATIAL_ONLY -> listOf(spatialModel)
+        VerificationStrategy.MOTION_ONLY -> listOf(motionModel)
+    }
 
-        val averageAnomaly = individualResults.map { it.anomalyScore }.average().toFloat()
-        val averageConfidence = individualResults.map { it.confidence }.average().toFloat()
-        val positiveVotes = individualResults.count { it.isOwner }
+    private fun calculateEnsemble(results: List<VerificationResult>): VerificationResult {
+        val averageAnomaly = results.map { it.anomalyScore }.average().toFloat()
+        val averageConfidence = results.map { it.confidence }.average().toFloat()
+        val positiveVotes = results.count { it.isOwner }
         // если больше половины моделей подтвердили, пускаем
-        val ensembleIsOwner = positiveVotes >= (individualResults.size / 2.0)
+        val ensembleIsOwner = positiveVotes >= results.size / ENSEMBLE_DIVISOR
 
-        val ensembleResult = VerificationResult(
+        return VerificationResult(
             modelName = "Ensemble",
             isOwner = ensembleIsOwner,
             anomalyScore = averageAnomaly,
             confidence = averageConfidence,
-            thresholdUsed = 0f // у ансамбля нет единого порога
+            thresholdUsed = ZERO_VAL
         )
-
-        return individualResults + ensembleResult
     }
 }
