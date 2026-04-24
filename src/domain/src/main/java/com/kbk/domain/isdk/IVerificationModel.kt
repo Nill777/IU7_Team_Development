@@ -17,5 +17,9 @@ interface IVerificationModel {
     @Throws(IllegalArgumentException::class)
     fun train(samples: List<BiometricSample>): ModelProfile
 
-    fun verify(attempt: List<BiometricSample>, profile: ModelProfile): VerificationResult
+    fun verify(
+        attempt: List<BiometricSample>,
+        profile: ModelProfile,
+        threshold: Float
+    ): VerificationResult
 }
