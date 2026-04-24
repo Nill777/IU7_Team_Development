@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -57,7 +58,7 @@ fun TransitionMatrixChart(title: String, matrix: Map<Pair<String, String>, Float
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Text(title, style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(CHART_SPACING_VAL.dp))
 
         Canvas(

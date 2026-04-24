@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private const val DASHBOARD_PADDING_VAL = 8
-private const val DASHBOARD_SPACING_VAL = 24
+private const val DASHBOARD_SPACING_VAL = 8
 private const val CARD_ELEVATION_VAL = 4
 private const val EMPTY_TEXT_SIZE_VAL = 18
 private const val NO_MATRIX_TEXT_SIZE_VAL = 14
@@ -61,19 +61,23 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(DASHBOARD_PADDING_VAL.dp),
-        verticalArrangement = Arrangement.spacedBy(DASHBOARD_SPACING_VAL.dp)
+            .padding(DASHBOARD_PADDING_VAL.dp)
     ) {
         Text(
             "Биометрический анализ",
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center
         )
-
-        HeatmapCard(state, viewModel)
-        DistributionCard(state, viewModel)
-        TransitionMatrixCard(state)
-        MicromotorCard(state)
+        Spacer(Modifier.height(DASHBOARD_PADDING_VAL.dp))
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(DASHBOARD_SPACING_VAL.dp)
+        ) {
+            HeatmapCard(state, viewModel)
+            DistributionCard(state, viewModel)
+            TransitionMatrixCard(state)
+            MicromotorCard(state)
+        }
     }
 }
 
@@ -112,20 +116,23 @@ private fun HeatmapDropdown(state: DashboardUiState, viewModel: DashboardViewMod
             modifier = Modifier
                 .menuAnchor()
                 .fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.background,
                 focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                focusedLabelColor = MaterialTheme.colorScheme.onBackground,
-                unfocusedContainerColor = MaterialTheme.colorScheme.background,
                 unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onBackground,
-                focusedIndicatorColor = MaterialTheme.colorScheme.secondary,
-                unfocusedIndicatorColor = MaterialTheme.colorScheme.onPrimary
+                focusedContainerColor = MaterialTheme.colorScheme.background,
+                unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                cursorColor = MaterialTheme.colorScheme.onBackground,
+                focusedIndicatorColor = MaterialTheme.colorScheme.onSecondary,
+                unfocusedIndicatorColor = MaterialTheme.colorScheme.onBackground,
+                focusedLabelColor = MaterialTheme.colorScheme.onBackground,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onBackground
             )
         )
         ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false },
+            shape = MaterialTheme.shapes.medium,
             containerColor = MaterialTheme.colorScheme.background
         ) {
             HeatmapMetricType.entries.forEach { metric ->
@@ -187,20 +194,23 @@ private fun DistributionDropdown(state: DashboardUiState, viewModel: DashboardVi
             modifier = Modifier
                 .menuAnchor()
                 .fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
             colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.background,
                 focusedTextColor = MaterialTheme.colorScheme.onBackground,
-                focusedLabelColor = MaterialTheme.colorScheme.onBackground,
-                unfocusedContainerColor = MaterialTheme.colorScheme.background,
                 unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onBackground,
-                focusedIndicatorColor = MaterialTheme.colorScheme.secondary,
-                unfocusedIndicatorColor = MaterialTheme.colorScheme.onPrimary
+                focusedContainerColor = MaterialTheme.colorScheme.background,
+                unfocusedContainerColor = MaterialTheme.colorScheme.background,
+                cursorColor = MaterialTheme.colorScheme.onBackground,
+                focusedIndicatorColor = MaterialTheme.colorScheme.onSecondary,
+                unfocusedIndicatorColor = MaterialTheme.colorScheme.onBackground,
+                focusedLabelColor = MaterialTheme.colorScheme.onBackground,
+                unfocusedLabelColor = MaterialTheme.colorScheme.onBackground
             )
         )
         ExposedDropdownMenu(
             expanded = expandedKey,
             onDismissRequest = { expandedKey = false },
+            shape = MaterialTheme.shapes.medium,
             containerColor = MaterialTheme.colorScheme.background
         ) {
             state.sortedAvailableKeys.forEach { key ->
