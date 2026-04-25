@@ -14,6 +14,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
@@ -114,7 +115,7 @@ private fun HeatmapDropdown(state: DashboardUiState, viewModel: DashboardViewMod
             label = { Text("Отображаемая метрика") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
-                .menuAnchor()
+                .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryEditable, enabled = true)
                 .fillMaxWidth(),
             shape = MaterialTheme.shapes.medium,
             colors = TextFieldDefaults.colors(
@@ -192,7 +193,7 @@ private fun DistributionDropdown(state: DashboardUiState, viewModel: DashboardVi
             label = { Text("Анализируемая клавиша") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedKey) },
             modifier = Modifier
-                .menuAnchor()
+                .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryEditable, enabled = true)
                 .fillMaxWidth(),
             shape = MaterialTheme.shapes.medium,
             colors = TextFieldDefaults.colors(
