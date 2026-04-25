@@ -73,6 +73,9 @@ private const val TWO_PADS = 2f
 private const val HEATMAP_PAD_X = 2f
 private const val HEATMAP_PAD_Y = 4f
 
+private const val MS_IN_HOUR = 3600000f
+private const val MIN_WINDOW_HOURS = 0.0166f // 1 минута в часах
+
 data class HeatmapConfig(
     val isRu: Boolean,
     val origW: Float,
@@ -271,10 +274,37 @@ private class HeatmapCalculator(
     private val sumGrid = FloatArray(w * h)
     private val weightGrid = FloatArray(w * h)
 
+    // вес плотности (кликов в час) для каждой клавиши
+    private val keyFreqWeights = calculateFreqWeights(samples)
+
     suspend fun calculate(): HeatmapResult = withContext(Dispatchers.Default) {
         if (w <= 0 || h <= 0) return@withContext HeatmapResult(ImageBitmap(1, 1), 0f, 0f)
         accumulateHeat()
         return@withContext normalizeAndColorize()
+    }
+
+    private fun calculateFreqWeights(samples: List<BiometricSample>): Map<String, Float> {
+        val grouped = samples.groupBy { it.touchData.key.lowercase() }
+        val weights = mutableMapOf<String, Float>()
+
+        for ((key, list) in grouped) {
+            val count = list.size
+            if (count < 2) {
+                weights[key] = 1f
+            } else {
+                val minTs = list.minOf { it.motionData.timestamp }
+                val maxTs = list.maxOf { it.motionData.timestamp }
+                val deltaMs = maxTs - minTs
+                val deltaHours = deltaMs / MS_IN_HOUR
+
+                // от деления на ноль или микроскопических таймингов (минимальное окно - 1 минута)
+                val effectiveHours = maxOf(deltaHours, MIN_WINDOW_HOURS)
+
+                // при агрегации для клавиши будет count / effectiveHours (кликов в час)
+                weights[key] = 1f / effectiveHours
+            }
+        }
+        return weights
     }
 
     private fun accumulateHeat() {
@@ -329,7 +359,7 @@ private class HeatmapCalculator(
 
     private fun getMetricValue(sample: BiometricSample): Float {
         return when (metricType) {
-            HeatmapMetricType.FREQUENCY -> 1f
+            HeatmapMetricType.FREQUENCY -> keyFreqWeights[sample.touchData.key.lowercase()] ?: 1f
             HeatmapMetricType.DWELL_TIME -> sample.touchData.dwellTime.toFloat()
             HeatmapMetricType.PRESSURE -> sample.touchData.pressure
         }
