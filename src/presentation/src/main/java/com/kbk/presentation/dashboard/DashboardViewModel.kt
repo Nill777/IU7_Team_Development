@@ -4,14 +4,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.kbk.domain.iservice.IBiometricService
 import com.kbk.domain.models.BiometricSample
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 
 enum class HeatmapMetricType(val label: String, val unit: String) {
-    FREQUENCY("Частота нажатий", "шт"),
+    FREQUENCY("Плотность нажатий", "клик/час"),
     DWELL_TIME("Время удержания", "мс"),
     PRESSURE("Сила нажатия", "у.е.")
 }
@@ -37,11 +39,14 @@ class DashboardViewModel(
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     private companion object {
-        const val MAX_TRANSITION_TIME_MS = 2000L
+        // ожидание окончания ввода перед пересчетом графиков
+        const val UI_UPDATE_DEBOUNCE_MS = 2000L
     }
 
     init {
+        @OptIn(FlowPreview::class)
         biometricService.getCollectedSamples()
+            .debounce(UI_UPDATE_DEBOUNCE_MS)
             .onEach { data ->
                 // cортировка клавиш по убыванию количества записей (популярные сверху)
                 val keysFreq = data.groupingBy { it.touchData.key }.eachCount()
