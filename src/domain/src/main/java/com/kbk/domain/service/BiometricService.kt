@@ -44,10 +44,11 @@ class BiometricService(
 
         // порог объема новых данных для переобучения
         const val EVOLUTION_THRESHOLD = 25
+        const val DEFAULT_BATCH_SIZE = 4
     }
 
     private var globalThresholds = mapOf<String, Float>()
-    private var currentBatchSize = 4
+    private var currentBatchSize = DEFAULT_BATCH_SIZE
 
     private val _verificationResultFlow = MutableStateFlow<VerificationResult?>(null)
     override val verificationResultFlow: StateFlow<VerificationResult?> =

@@ -8,20 +8,27 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class SettingsRepositoryImpl(context: Context) : ISettingsRepository {
+class SettingsRepository(context: Context) : ISettingsRepository {
+    private companion object {
+        const val DEFAULT_BATCH_SIZE = 4
+        const val DEFAULT_TIMING_THRESHOLD = 4.0f
+        const val DEFAULT_SPATIAL_THRESHOLD = 5.0f
+        const val DEFAULT_MOTION_THRESHOLD = 6.0f
+    }
+
     private val prefs: SharedPreferences =
         context.getSharedPreferences("keystroke_settings", Context.MODE_PRIVATE)
 
-    private val _batchSize = MutableStateFlow(prefs.getInt("batch_size", 4))
+    private val _batchSize = MutableStateFlow(prefs.getInt("batch_size", DEFAULT_BATCH_SIZE))
     override val batchSize: StateFlow<Int> = _batchSize.asStateFlow()
 
-    private val _timingThreshold = MutableStateFlow(prefs.getFloat("timing_threshold", 4.0f))
+    private val _timingThreshold = MutableStateFlow(prefs.getFloat("timing_threshold", DEFAULT_TIMING_THRESHOLD))
     override val timingThreshold: StateFlow<Float> = _timingThreshold.asStateFlow()
 
-    private val _spatialThreshold = MutableStateFlow(prefs.getFloat("spatial_threshold", 5.0f))
+    private val _spatialThreshold = MutableStateFlow(prefs.getFloat("spatial_threshold", DEFAULT_SPATIAL_THRESHOLD))
     override val spatialThreshold: StateFlow<Float> = _spatialThreshold.asStateFlow()
 
-    private val _motionThreshold = MutableStateFlow(prefs.getFloat("motion_threshold", 6.0f))
+    private val _motionThreshold = MutableStateFlow(prefs.getFloat("motion_threshold", DEFAULT_MOTION_THRESHOLD))
     override val motionThreshold: StateFlow<Float> = _motionThreshold.asStateFlow()
 
     override suspend fun setBatchSize(size: Int) {
