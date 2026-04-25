@@ -35,17 +35,25 @@ const val SHARED_COLOR_GREY_BG = 0xFF696969
 const val SHARED_COLOR_GREY_ONBG = 0xFFA9A9A9
 const val SHARED_COLOR_GREY_INDICATOR = 0xFF808080
 
+data class SettingsState(
+    val batchSize: Int,
+    val timingThreshold: Float,
+    val spatialThreshold: Float,
+    val motionThreshold: Float
+)
+
+data class SettingsActions(
+    val onBatchSizeChange: (Float) -> Unit,
+    val onTimingChange: (Float) -> Unit,
+    val onSpatialChange: (Float) -> Unit,
+    val onMotionChange: (Float) -> Unit
+)
+
 @Composable
 fun SettingsCard(
     title: String = "Настройки",
-    batchSize: Int,
-    timingThreshold: Float,
-    spatialThreshold: Float,
-    motionThreshold: Float,
-    onBatchSizeChange: (Float) -> Unit,
-    onTimingChange: (Float) -> Unit,
-    onSpatialChange: (Float) -> Unit,
-    onMotionChange: (Float) -> Unit
+    state: SettingsState,
+    actions: SettingsActions
 ) {
     Card(
         elevation = CardDefaults.cardElevation(SHARED_CARD_ELEVATION_VAL.dp),
@@ -54,10 +62,10 @@ fun SettingsCard(
         Column(modifier = Modifier.padding(SHARED_CARD_PADDING_VAL.dp)) {
             Text(title, style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.height(SHARED_CARD_PADDING_VAL.dp))
-            Text("Батч верификации: $batchSize", style = MaterialTheme.typography.titleMedium)
+            Text("Батч верификации: ${state.batchSize}", style = MaterialTheme.typography.titleMedium)
             Slider(
-                value = batchSize.toFloat(),
-                onValueChange = onBatchSizeChange,
+                value = state.batchSize.toFloat(),
+                onValueChange = actions.onBatchSizeChange,
                 valueRange = SHARED_BATCH_MIN_VAL..SHARED_BATCH_MAX_VAL,
                 steps = SHARED_BATCH_STEPS,
                 colors = SliderDefaults.colors(
@@ -74,9 +82,9 @@ fun SettingsCard(
             HorizontalDivider(color = MaterialTheme.colorScheme.onBackground)
             Spacer(Modifier.height(SHARED_CARD_PADDING_VAL.dp))
 
-            ThresholdSlider("TimingModel", timingThreshold, onTimingChange)
-            ThresholdSlider("SpatialModel", spatialThreshold, onSpatialChange)
-            ThresholdSlider("MotionModel", motionThreshold, onMotionChange)
+            ThresholdSlider("TimingModel", state.timingThreshold, actions.onTimingChange)
+            ThresholdSlider("SpatialModel", state.spatialThreshold, actions.onSpatialChange)
+            ThresholdSlider("MotionModel", state.motionThreshold, actions.onMotionChange)
         }
     }
 }

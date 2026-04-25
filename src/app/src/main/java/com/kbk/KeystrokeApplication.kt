@@ -4,7 +4,7 @@ import android.app.Application
 import androidx.room.Room
 import com.kbk.data.local.BiometricDatabase
 import com.kbk.data.repository.BiometricRepository
-import com.kbk.data.repository.SettingsRepositoryImpl
+import com.kbk.data.repository.SettingsRepository
 import com.kbk.data.sensors.AndroidMotionRepository
 import com.kbk.domain.irepository.IBiometricRepository
 import com.kbk.domain.irepository.IMotionRepository
@@ -38,7 +38,7 @@ class KeystrokeApplication : Application(), DependencyProvider {
     }
 
     override val settingsRepository: ISettingsRepository by lazy {
-        SettingsRepositoryImpl(this)
+        SettingsRepository(this)
     }
 
     override val biometricService: IBiometricService by lazy {

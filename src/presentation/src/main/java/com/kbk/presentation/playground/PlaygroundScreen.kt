@@ -55,7 +55,9 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.kbk.domain.models.sdk.VerificationResult
 import com.kbk.presentation.R
 import com.kbk.presentation.components.DetailedResultCard
+import com.kbk.presentation.components.SettingsActions
 import com.kbk.presentation.components.SettingsCard
+import com.kbk.presentation.components.SettingsState
 
 private const val PLAYGROUND_PADDING_VAL = 8
 private const val PLAYGROUND_SPACING_VAL = 8
@@ -115,14 +117,18 @@ fun PlaygroundScreen(viewModel: PlaygroundViewModel) {
             )
             SettingsCard(
                 title = "Настройки тестирования",
-                batchSize = batchSize,
-                timingThreshold = timingThreshold,
-                spatialThreshold = spatialThreshold,
-                motionThreshold = motionThreshold,
-                onBatchSizeChange = { viewModel.updateBatchSize(it) },
-                onTimingChange = { viewModel.updateTimingThreshold(it) },
-                onSpatialChange = { viewModel.updateSpatialThreshold(it) },
-                onMotionChange = { viewModel.updateMotionThreshold(it) }
+                state = SettingsState(
+                    batchSize = batchSize,
+                    timingThreshold = timingThreshold,
+                    spatialThreshold = spatialThreshold,
+                    motionThreshold = motionThreshold
+                ),
+                actions = SettingsActions(
+                    onBatchSizeChange = viewModel::updateBatchSize,
+                    onTimingChange = viewModel::updateTimingThreshold,
+                    onSpatialChange = viewModel::updateSpatialThreshold,
+                    onMotionChange = viewModel::updateMotionThreshold
+                )
             )
             TestCard(
                 isVerificationMode = isVerificationMode,
