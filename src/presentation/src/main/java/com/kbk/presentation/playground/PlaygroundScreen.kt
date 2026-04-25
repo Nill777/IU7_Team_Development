@@ -229,7 +229,12 @@ private fun BatLogoWithGlow(isGlowing: Boolean, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun ModeInfoText(isVerificationMode: Boolean, totalCount: Int, trainedCount: Int) {
+private fun StatusCard(
+    isVerificationMode: Boolean,
+    totalCount: Int,
+    trainedCount: Int,
+    onTrainClick: () -> Unit
+) {
     val fullText = buildAnnotatedString {
         append("Режим: ")
         withStyle(
@@ -251,22 +256,12 @@ private fun ModeInfoText(isVerificationMode: Boolean, totalCount: Int, trainedCo
         )
     }
 
-    Text(text = fullText, style = MaterialTheme.typography.titleMedium)
-}
-
-@Composable
-private fun StatusCard(
-    isVerificationMode: Boolean,
-    totalCount: Int,
-    trainedCount: Int,
-    onTrainClick: () -> Unit
-) {
     Card(
         elevation = CardDefaults.cardElevation(CARD_ELEVATION_VAL.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
     ) {
         Column(modifier = Modifier.padding(PLAYGROUND_PADDING_VAL.dp)) {
-            ModeInfoText(isVerificationMode, totalCount, trainedCount)
+            Text(text = fullText, style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(PLAYGROUND_PADDING_VAL.dp))
             Button(
                 onClick = onTrainClick,
@@ -404,27 +399,16 @@ private data class ResultCardUiState(
 )
 
 private fun getResultCardUiState(results: List<VerificationResult>): ResultCardUiState {
-    val isEmpty = results.isEmpty()
-    val ensemble = results.find { it.modelName.startsWith("Ensemble") }
-    val isOwner = ensemble?.isOwner == true
-
-    val bgColor = when {
-        isEmpty -> Color(COLOR_GREY_BG)
-        isOwner -> Color(COLOR_GREEN_BG)
-        else -> Color(COLOR_RED_BG)
-    }
-    val titleColor = when {
-        isEmpty -> Color(COLOR_GREY_ONBG)
-        isOwner -> Color(COLOR_GREEN_TEXT)
-        else -> Color(COLOR_RED_TEXT)
-    }
-    val titleText = when {
-        isEmpty -> ""
-        isOwner -> "владелец"
-        else -> "взлом"
+    if (results.isEmpty()) {
+        return ResultCardUiState(Color(COLOR_GREY_BG), Color(COLOR_GREY_ONBG), "")
     }
 
-    return ResultCardUiState(bgColor, titleColor, titleText)
+    val isOwner = results.find { it.modelName.startsWith("Ensemble") }?.isOwner == true
+    return if (isOwner) {
+        ResultCardUiState(Color(COLOR_GREEN_BG), Color(COLOR_GREEN_TEXT), "владелец")
+    } else {
+        ResultCardUiState(Color(COLOR_RED_BG), Color(COLOR_RED_TEXT), "взлом")
+    }
 }
 
 @Composable
