@@ -101,7 +101,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run E2E Tests
-        run: ./gradlew app:runE2ETestsWithEmulator
+        run: ./gradlew :app:connectedDebugAndroidTest
 
   llm-review:
     name: AI Code Review
