@@ -87,7 +87,7 @@ class BiometricIntegrationTest {
     @Test
     fun `test complete flow from data collection to verification`() = runTest {
         // ввод 15 одинаковых букв "а"
-        for (i in 1..15) {
+        repeat(15) {
             biometricService.saveSample(
                 TouchData(key = "а", dwellTime = 100L, flightTime = 50L)
             )
@@ -103,7 +103,7 @@ class BiometricIntegrationTest {
 
         // верификация легитимного ввода
         // вводим еще 4 буквы "а" с такими же таймингами
-        for (i in 1..4) {
+        repeat(4) {
             biometricService.saveSample(
                 TouchData(key = "а", dwellTime = 101L, flightTime = 51L)
             )
