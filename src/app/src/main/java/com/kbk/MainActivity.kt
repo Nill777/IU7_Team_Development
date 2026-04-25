@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
                         PlaygroundViewModel(biometricService) as T
 
                     modelClass.isAssignableFrom(SettingsViewModel::class.java) ->
-                        SettingsViewModel() as T
+                        SettingsViewModel(app.settingsRepository, biometricService) as T
 
                     else -> throw IllegalArgumentException("Unknown ViewModel class")
                 }

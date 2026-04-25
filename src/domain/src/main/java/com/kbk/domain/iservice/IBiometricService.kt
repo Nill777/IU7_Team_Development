@@ -3,6 +3,7 @@ package com.kbk.domain.iservice
 import com.kbk.domain.isdk.VerificationStrategy
 import com.kbk.domain.models.BiometricSample
 import com.kbk.domain.models.TouchData
+import com.kbk.domain.models.sdk.VerificationAttempt
 import com.kbk.domain.models.sdk.VerificationResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharedFlow
@@ -11,6 +12,10 @@ import kotlinx.coroutines.flow.StateFlow
 interface IBiometricService {
     // поток результатов верификации
     val verificationResultFlow: StateFlow<VerificationResult?>
+
+    // история фоновых верификаций
+    val verificationHistoryFlow: StateFlow<List<VerificationAttempt>>
+
     val isVerificationMode: StateFlow<Boolean>
 
     val totalSamplesCount: StateFlow<Int>
@@ -28,7 +33,6 @@ interface IBiometricService {
     suspend fun trainProfileFromDb()
     fun setVerificationStrategy(strategy: VerificationStrategy)
 
-    fun updateGlobalThresholds(thresholds: Map<String, Float>)
     fun verifyForPlayground(
         attempt: List<BiometricSample>,
         thresholds: Map<String, Float>

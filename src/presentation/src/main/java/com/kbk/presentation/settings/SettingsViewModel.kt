@@ -1,15 +1,37 @@
 package com.kbk.presentation.settings
 
 import androidx.lifecycle.ViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import androidx.lifecycle.viewModelScope
+import com.kbk.domain.irepository.ISettingsRepository
+import com.kbk.domain.iservice.IBiometricService
+import kotlinx.coroutines.launch
 
-private const val SENSITIVITY_THRESHOLD = 2.5f
-class SettingsViewModel : ViewModel() {
-    private val _threshold = MutableStateFlow(SENSITIVITY_THRESHOLD)
-    val threshold = _threshold.asStateFlow()
+class SettingsViewModel(
+    private val settingsRepository: ISettingsRepository,
+    biometricService: IBiometricService
+) : ViewModel() {
 
-    fun updateThreshold(value: Float) {
-        _threshold.value = value
+    val batchSize = settingsRepository.batchSize
+    val timingThreshold = settingsRepository.timingThreshold
+    val spatialThreshold = settingsRepository.spatialThreshold
+    val motionThreshold = settingsRepository.motionThreshold
+
+    // лента истории из самого сервиса
+    val verificationHistory = biometricService.verificationHistoryFlow
+
+    fun updateBatchSize(size: Float) {
+        viewModelScope.launch { settingsRepository.setBatchSize(size.toInt()) }
+    }
+
+    fun updateTimingThreshold(value: Float) {
+        viewModelScope.launch { settingsRepository.setTimingThreshold(value) }
+    }
+
+    fun updateSpatialThreshold(value: Float) {
+        viewModelScope.launch { settingsRepository.setSpatialThreshold(value) }
+    }
+
+    fun updateMotionThreshold(value: Float) {
+        viewModelScope.launch { settingsRepository.setMotionThreshold(value) }
     }
 }
