@@ -2,12 +2,14 @@ package com.kbk.domain.service
 
 import com.kbk.domain.irepository.IBiometricRepository
 import com.kbk.domain.irepository.IMotionRepository
+import com.kbk.domain.irepository.ISettingsRepository
 import com.kbk.domain.isdk.IKeystrokeVerificationManager
 import com.kbk.domain.isdk.VerificationStrategy
 import com.kbk.domain.iservice.IBiometricService
 import com.kbk.domain.models.BiometricSample
 import com.kbk.domain.models.TouchData
 import com.kbk.domain.models.sdk.BiometricProfile
+import com.kbk.domain.models.sdk.VerificationAttempt
 import com.kbk.domain.models.sdk.VerificationResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private fun isRussian(k: String) = k.length == 1 && k.all { it in 'а'..'я' || it == 'ё' }
@@ -27,13 +30,11 @@ private fun isEnglish(k: String) = k.length == 1 && k.all { it in 'a'..'z' }
 class BiometricService(
     private val biometricRepository: IBiometricRepository,
     private val motionRepository: IMotionRepository,
-    private val verificationManager: IKeystrokeVerificationManager
+    private val verificationManager: IKeystrokeVerificationManager,
+    private val settingsRepository: ISettingsRepository
 ) : IBiometricService {
     private companion object {
         const val MAX_TRANSITION_TIME_MS = 2000L
-
-        // размер батча для проверки
-        const val ATTEMPT_WINDOW_SIZE = 4
 
         // объем окна для обучения
         const val TRAINING_WINDOW_SIZE = 100
@@ -43,22 +44,18 @@ class BiometricService(
 
         // порог объема новых данных для переобучения
         const val EVOLUTION_THRESHOLD = 25
-
-        const val DEFAULT_TIMING_THRESHOLD = 4.0f
-        const val DEFAULT_SPATIAL_THRESHOLD = 5.0f
-        const val DEFAULT_MOTION_THRESHOLD = 6.0f
-
     }
 
-    private var globalThresholds = mapOf(
-        "TimingModel" to DEFAULT_TIMING_THRESHOLD,
-        "SpatialModel" to DEFAULT_SPATIAL_THRESHOLD,
-        "MotionModel" to DEFAULT_MOTION_THRESHOLD
-    )
+    private var globalThresholds = mapOf<String, Float>()
+    private var currentBatchSize = 4
 
     private val _verificationResultFlow = MutableStateFlow<VerificationResult?>(null)
     override val verificationResultFlow: StateFlow<VerificationResult?> =
         _verificationResultFlow.asStateFlow()
+
+    private val _verificationHistoryFlow = MutableStateFlow<List<VerificationAttempt>>(emptyList())
+    override val verificationHistoryFlow: StateFlow<List<VerificationAttempt>> =
+        _verificationHistoryFlow.asStateFlow()
 
     private val _isVerificationMode = MutableStateFlow(false)
     override val isVerificationMode: StateFlow<Boolean> = _isVerificationMode.asStateFlow()
@@ -88,10 +85,26 @@ class BiometricService(
         CoroutineScope(Dispatchers.IO).launch {
             _totalSamplesCount.value = biometricRepository.getSamplesCount()
         }
-    }
 
-    override fun updateGlobalThresholds(thresholds: Map<String, Float>) {
-        globalThresholds = thresholds
+        // подписываемся на изменения настроек и обновляем параметры фоновой верификации
+        CoroutineScope(Dispatchers.IO).launch {
+            settingsRepository.batchSize.collect { currentBatchSize = it }
+        }
+        CoroutineScope(Dispatchers.IO).launch {
+            settingsRepository.timingThreshold.collect {
+                globalThresholds = globalThresholds.toMutableMap().apply { put("TimingModel", it) }
+            }
+        }
+        CoroutineScope(Dispatchers.IO).launch {
+            settingsRepository.spatialThreshold.collect {
+                globalThresholds = globalThresholds.toMutableMap().apply { put("SpatialModel", it) }
+            }
+        }
+        CoroutineScope(Dispatchers.IO).launch {
+            settingsRepository.motionThreshold.collect {
+                globalThresholds = globalThresholds.toMutableMap().apply { put("MotionModel", it) }
+            }
+        }
     }
 
     override fun setTestInputMode(isActive: Boolean) {
@@ -112,9 +125,8 @@ class BiometricService(
         _playgroundSampleFlow.tryEmit(sample)
 
         // тестовый ввод не сохраненяем в БД
-        if (isTestInputMode) {
-            return
-        }
+        if (isTestInputMode) return
+
         _totalSamplesCount.value += 1
 
         // режим сбора данных
@@ -129,18 +141,26 @@ class BiometricService(
 
     private suspend fun processVerificationStep(sample: BiometricSample) {
         attemptBuffer.add(sample)
-        if (attemptBuffer.size < ATTEMPT_WINDOW_SIZE) return
+        // ждем нужное кол-во символов
+        if (attemptBuffer.size < currentBatchSize) return
 
         val results = runCatching {
             verificationManager.verify(attemptBuffer, currentProfile!!, globalThresholds)
         }.getOrNull()
 
-        val ensembleResult =
-            results?.find { it.modelName.startsWith("Ensemble") } ?: results?.firstOrNull()
-        _verificationResultFlow.value = ensembleResult
+        if (results != null) {
+            // пишем в историю фоновой верификации
+            _verificationHistoryFlow.update { currentList ->
+                listOf(VerificationAttempt(System.currentTimeMillis(), results)) + currentList
+            }
 
-        if (ensembleResult?.isOwner == true) {
-            handleSuccessfulVerification()
+            val ensembleResult =
+                results.find { it.modelName.startsWith("Ensemble") } ?: results.firstOrNull()
+            _verificationResultFlow.value = ensembleResult
+
+            if (ensembleResult?.isOwner == true) {
+                handleSuccessfulVerification()
+            }
         }
 
         attemptBuffer.clear()
@@ -159,9 +179,7 @@ class BiometricService(
     }
 
     private suspend fun checkAutoTrainTrigger() {
-        val count = biometricRepository.getSamplesCount()
-
-        if (count >= AUTO_TRAIN_THRESHOLD) {
+        if (biometricRepository.getSamplesCount() >= AUTO_TRAIN_THRESHOLD) {
             runCatching { trainProfileFromDb() }
         }
     }
