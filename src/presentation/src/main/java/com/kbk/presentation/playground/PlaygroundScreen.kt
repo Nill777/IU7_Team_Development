@@ -26,11 +26,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -57,11 +54,12 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.repeatOnLifecycle
 import com.kbk.domain.models.sdk.VerificationResult
 import com.kbk.presentation.R
+import com.kbk.presentation.components.DetailedResultCard
+import com.kbk.presentation.components.SettingsCard
 
 private const val PLAYGROUND_PADDING_VAL = 8
 private const val PLAYGROUND_SPACING_VAL = 8
 private const val CARD_ELEVATION_VAL = 4
-private const val CARD_INNER_PADDING_VAL = 16
 private const val SPACER_TOPBAR_VAL = 16
 
 private const val LOGO_SIZE_DP = 56
@@ -75,19 +73,9 @@ private const val HALF_DIVISOR = 2f
 private const val COLOR_CYAN_GLOW = 0xFF04FBFF
 private const val COLOR_MODE_COLLECTION = 0xFFFFA500
 private const val COLOR_MODE_VERIFICATION = 0xFF00FF00
-private const val COLOR_GREEN_BG = 0xFFE8F5E9
-private const val COLOR_RED_BG = 0xFFFFEBEE
-private const val COLOR_GREEN_TEXT = 0xFF2E7D32
-private const val COLOR_RED_TEXT = 0xFFC62828
 private const val COLOR_GREY_BG = 0xFF696969
 private const val COLOR_GREY_ONBG = 0xFFA9A9A9
 private const val COLOR_GREY_INDICATOR = 0xFF808080
-
-private const val SLIDER_MIN_VAL = 0f
-private const val SLIDER_MAX_VAL = 10f
-private const val BATCH_MIN_VAL = 1f
-private const val BATCH_MAX_VAL = 20f
-private const val BATCH_STEPS = 18
 
 private const val FIELD_MIN_HEIGHT = 56
 private const val FIELD_MAX_HEIGHT = 150
@@ -126,11 +114,15 @@ fun PlaygroundScreen(viewModel: PlaygroundViewModel) {
                 onTrainClick = { viewModel.trainModel() }
             )
             SettingsCard(
+                title = "Настройки тестирования",
                 batchSize = batchSize,
                 timingThreshold = timingThreshold,
                 spatialThreshold = spatialThreshold,
                 motionThreshold = motionThreshold,
-                viewModel = viewModel
+                onBatchSizeChange = { viewModel.updateBatchSize(it) },
+                onTimingChange = { viewModel.updateTimingThreshold(it) },
+                onSpatialChange = { viewModel.updateSpatialThreshold(it) },
+                onMotionChange = { viewModel.updateMotionThreshold(it) }
             )
             TestCard(
                 isVerificationMode = isVerificationMode,
@@ -262,7 +254,7 @@ private fun StatusCard(
     ) {
         Column(modifier = Modifier.padding(PLAYGROUND_PADDING_VAL.dp)) {
             Text(text = fullText, style = MaterialTheme.typography.titleMedium)
-            Spacer(Modifier.height(PLAYGROUND_PADDING_VAL.dp))
+            Spacer(Modifier.height(PLAYGROUND_SPACING_VAL.dp))
             Button(
                 onClick = onTrainClick,
                 modifier = Modifier.fillMaxWidth(),
@@ -272,74 +264,6 @@ private fun StatusCard(
             }
         }
     }
-}
-
-@Composable
-private fun SettingsCard(
-    batchSize: Int,
-    timingThreshold: Float,
-    spatialThreshold: Float,
-    motionThreshold: Float,
-    viewModel: PlaygroundViewModel
-) {
-    Card(
-        elevation = CardDefaults.cardElevation(CARD_ELEVATION_VAL.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
-    ) {
-        Column(modifier = Modifier.padding(PLAYGROUND_PADDING_VAL.dp)) {
-            Text("Настройки тестирования", style = MaterialTheme.typography.headlineSmall)
-            Spacer(Modifier.height(PLAYGROUND_PADDING_VAL.dp))
-            Text("Батч верификации: $batchSize", style = MaterialTheme.typography.titleMedium)
-            Slider(
-                value = batchSize.toFloat(),
-                onValueChange = { viewModel.updateBatchSize(it) },
-                valueRange = BATCH_MIN_VAL..BATCH_MAX_VAL,
-                steps = BATCH_STEPS,
-                colors = SliderDefaults.colors(
-                    thumbColor = MaterialTheme.colorScheme.onSecondary,
-                    activeTrackColor = MaterialTheme.colorScheme.onSecondary,
-                    activeTickColor = MaterialTheme.colorScheme.secondary,
-                    inactiveTrackColor = MaterialTheme.colorScheme.secondary,
-                    inactiveTickColor = MaterialTheme.colorScheme.onSecondary
-                )
-            )
-
-            Spacer(Modifier.height(PLAYGROUND_PADDING_VAL.dp))
-            Text("Тестовые пороги аномальности:", style = MaterialTheme.typography.titleMedium)
-            HorizontalDivider(color = MaterialTheme.colorScheme.onBackground)
-            Spacer(Modifier.height(PLAYGROUND_PADDING_VAL.dp))
-
-            ThresholdSlider(
-                "TimingModel",
-                timingThreshold
-            ) { viewModel.updateTimingThreshold(it) }
-            ThresholdSlider(
-                "SpatialModel",
-                spatialThreshold
-            ) { viewModel.updateSpatialThreshold(it) }
-            ThresholdSlider(
-                "MotionModel",
-                motionThreshold
-            ) { viewModel.updateMotionThreshold(it) }
-        }
-    }
-}
-
-@Composable
-private fun ThresholdSlider(name: String, value: Float, onValueChange: (Float) -> Unit) {
-    Text("$name: ${"%.1f".format(value)} \u03C3", style = MaterialTheme.typography.titleMedium)
-    Slider(
-        value = value,
-        onValueChange = onValueChange,
-        valueRange = SLIDER_MIN_VAL..SLIDER_MAX_VAL,
-        colors = SliderDefaults.colors(
-            thumbColor = MaterialTheme.colorScheme.onSecondary,
-            activeTrackColor = MaterialTheme.colorScheme.onSecondary,
-            activeTickColor = MaterialTheme.colorScheme.secondary,
-            inactiveTrackColor = MaterialTheme.colorScheme.secondary,
-            inactiveTickColor = MaterialTheme.colorScheme.onSecondary
-        )
-    )
 }
 
 @Composable
@@ -356,10 +280,10 @@ private fun TestCard(
     ) {
         Column(modifier = Modifier.padding(PLAYGROUND_PADDING_VAL.dp)) {
             Text("Тестирование", style = MaterialTheme.typography.headlineSmall)
-            Spacer(Modifier.height(PLAYGROUND_PADDING_VAL.dp))
+            Spacer(Modifier.height(PLAYGROUND_SPACING_VAL.dp))
 
             DetailedResultCard(latestResults)
-            Spacer(Modifier.height(PLAYGROUND_PADDING_VAL.dp))
+            Spacer(Modifier.height(PLAYGROUND_SPACING_VAL.dp))
 
             OutlinedTextField(
                 value = testText,
@@ -388,83 +312,6 @@ private fun TestCard(
                     disabledLabelColor = Color(COLOR_GREY_ONBG)
                 )
             )
-        }
-    }
-}
-
-private data class ResultCardUiState(
-    val bgColor: Color,
-    val titleColor: Color,
-    val titleText: String
-)
-
-private fun getResultCardUiState(results: List<VerificationResult>): ResultCardUiState {
-    if (results.isEmpty()) {
-        return ResultCardUiState(Color(COLOR_GREY_BG), Color(COLOR_GREY_ONBG), "")
-    }
-
-    val isOwner = results.find { it.modelName.startsWith("Ensemble") }?.isOwner == true
-    return if (isOwner) {
-        ResultCardUiState(Color(COLOR_GREEN_BG), Color(COLOR_GREEN_TEXT), "владелец")
-    } else {
-        ResultCardUiState(Color(COLOR_RED_BG), Color(COLOR_RED_TEXT), "взлом")
-    }
-}
-
-@Composable
-private fun DetailedResultCard(results: List<VerificationResult>) {
-    val uiState = getResultCardUiState(results)
-    val models = results.filter { !it.modelName.startsWith("Ensemble") }
-
-    Card(
-        elevation = CardDefaults.cardElevation(CARD_ELEVATION_VAL.dp),
-        colors = CardDefaults.cardColors(containerColor = uiState.bgColor)
-    ) {
-        Column(modifier = Modifier.padding(CARD_INNER_PADDING_VAL.dp)) {
-            Row {
-                Text(
-                    text = "Итог ансамбля:",
-                    color = uiState.titleColor,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(Modifier.weight(1f))
-                Text(
-                    text = uiState.titleText,
-                    color = uiState.titleColor,
-                    style = MaterialTheme.typography.titleMedium
-                )
-            }
-            HorizontalDivider(color = Color(COLOR_GREY_INDICATOR))
-            Spacer(Modifier.height(PLAYGROUND_PADDING_VAL.dp))
-
-            val modelNames = listOf("TimingModel", "SpatialModel", "MotionModel")
-
-            modelNames.forEach { modelName ->
-                val res = models.find { it.modelName == modelName }
-                if (res != null) {
-                    val statusText = if (res.isOwner) "✅" else "❌"
-                    Row {
-                        Text(
-                            text = "${res.modelName}: ${"%.1f".format(res.anomalyScore)} / ${
-                                "%.1f".format(
-                                    res.thresholdUsed
-                                )
-                            }",
-                            color = Color.Black
-                        )
-                        Spacer(Modifier.weight(1f))
-                        Text(
-                            text = statusText,
-                            color = Color.Black
-                        )
-                    }
-                } else {
-                    Text(
-                        text = "$modelName: -",
-                        color = Color(COLOR_GREY_ONBG)
-                    )
-                }
-            }
         }
     }
 }

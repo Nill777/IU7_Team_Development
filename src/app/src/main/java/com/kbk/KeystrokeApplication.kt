@@ -4,9 +4,11 @@ import android.app.Application
 import androidx.room.Room
 import com.kbk.data.local.BiometricDatabase
 import com.kbk.data.repository.BiometricRepository
+import com.kbk.data.repository.SettingsRepositoryImpl
 import com.kbk.data.sensors.AndroidMotionRepository
 import com.kbk.domain.irepository.IBiometricRepository
 import com.kbk.domain.irepository.IMotionRepository
+import com.kbk.domain.irepository.ISettingsRepository
 import com.kbk.domain.isdk.IKeystrokeVerificationManager
 import com.kbk.domain.iservice.IBiometricService
 import com.kbk.domain.service.BiometricService
@@ -35,7 +37,11 @@ class KeystrokeApplication : Application(), DependencyProvider {
         KeystrokeVerificationManager()
     }
 
+    override val settingsRepository: ISettingsRepository by lazy {
+        SettingsRepositoryImpl(this)
+    }
+
     override val biometricService: IBiometricService by lazy {
-        BiometricService(biometricRepository, motionRepository, verificationManager)
+        BiometricService(biometricRepository, motionRepository, verificationManager, settingsRepository)
     }
 }
