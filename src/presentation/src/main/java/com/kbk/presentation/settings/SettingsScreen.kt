@@ -22,7 +22,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.kbk.domain.models.sdk.VerificationAttempt
 import com.kbk.presentation.components.DetailedResultCard
+import com.kbk.presentation.components.SettingsActions
 import com.kbk.presentation.components.SettingsCard
+import com.kbk.presentation.components.SettingsState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -48,14 +50,18 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         Text("Настройки защиты", style = MaterialTheme.typography.headlineMedium)
         SettingsCard(
             title = "Параметры верификации",
-            batchSize = batchSize,
-            timingThreshold = timingThreshold,
-            spatialThreshold = spatialThreshold,
-            motionThreshold = motionThreshold,
-            onBatchSizeChange = viewModel::updateBatchSize,
-            onTimingChange = viewModel::updateTimingThreshold,
-            onSpatialChange = viewModel::updateSpatialThreshold,
-            onMotionChange = viewModel::updateMotionThreshold
+            state = SettingsState(
+                batchSize = batchSize,
+                timingThreshold = timingThreshold,
+                spatialThreshold = spatialThreshold,
+                motionThreshold = motionThreshold
+            ),
+            actions = SettingsActions(
+                onBatchSizeChange = viewModel::updateBatchSize,
+                onTimingChange = viewModel::updateTimingThreshold,
+                onSpatialChange = viewModel::updateSpatialThreshold,
+                onMotionChange = viewModel::updateMotionThreshold
+            )
         )
         HistoryCard(history = history)
     }
@@ -77,8 +83,9 @@ private fun HistoryCard(history: List<VerificationAttempt>) {
             if (history.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        text = "История пуста. Удостоверьтесь, что приложение работает в режиме верификации. " +
-                                "При необходимости возможен принудительный расчет эталонного профиля на тестовом экране",
+                        text = "История пуста. Удостоверьтесь, что приложение работает " +
+                                "в режиме верификации. При необходимости возможен " +
+                                "принудительный расчет эталонного профиля на тестовом экране",
                         color = Color.Gray,
                     )
                 }
