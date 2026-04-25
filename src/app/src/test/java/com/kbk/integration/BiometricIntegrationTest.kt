@@ -99,7 +99,10 @@ class BiometricIntegrationTest {
         biometricService.trainProfileFromDb()
         testScheduler.advanceUntilIdle()
 
-        assertTrue("Сервис должен перейти в режим защиты", biometricService.isVerificationMode.value)
+        assertTrue(
+            "Сервис должен перейти в режим защиты",
+            biometricService.isVerificationMode.value
+        )
 
         // верификация легитимного ввода
         // вводим еще 4 буквы "а" с такими же таймингами
