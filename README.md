@@ -1,9 +1,27 @@
+<p align="center">
+    <img src="./docs/img/logo.png" width="200"/>
+</p>
+
 # Keystroke Biometrics Keyboard & SDK
+
+<p align="center">
+    <img src="https://img.shields.io/badge/Kotlin-2.3.20-7F52FF.svg?logo=kotlin" alt="Kotlin">
+    <img src="https://img.shields.io/badge/Android_SDK-36-3DDC84?logo=android" alt="Android">
+    <img src="https://img.shields.io/badge/Jetpack_Compose-Modern_UI-4285F4?logo=jetpackcompose&logoColor=white" alt="Compose">
+    <img src="https://img.shields.io/badge/Room-Persistence-316192?logo=sqlite&logoColor=white" alt="Room">
+    <img src="https://img.shields.io/badge/Math-Mahalanobis_Distance-blueviolet" alt="Mahalanobis">
+    <img src="https://img.shields.io/badge/CI%2FCD-GitHub_Actions-2088FF?logo=githubactions&logoColor=white" alt="CI/CD">
+    <img src="https://img.shields.io/badge/Tests-Unit_%7C_Integ_%7C_E2E-success" alt="Testing">
+    <img src="https://img.shields.io/badge/Static_Analysis-Detekt-FF4081" alt="Detekt">
+    <img src="https://img.shields.io/badge/AI_Review-Local_LLM-purple" alt="AI Review">
+</p>
+
 ## Содержание
 * [Техническое задание](#техническое-задание)
 * [PERT диаграмма](./docs/pert_chart.md)
 * [Таблица рисков](./docs/risk_assessment.md)
 * [P3.express](./docs/p3express.md)
+* [Методология 12 факторов](./docs/12_factors.md)
 * [Гайд по LLM ревью](./docs/llm_review_guide.md)
 * [Гайд по стилистике кода](./docs/code_style_guide.md)
 * [Информация о команде](./docs/team_info.md)
